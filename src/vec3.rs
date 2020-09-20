@@ -181,20 +181,24 @@ pub fn unit_vector(v: Vec3) -> Vec3 {
     v / v.length()
 }
 
-// pub fn random_in_unit_sphere() -> Vec3 {
-//     loop {
-//         let p = Vec3::random_with_bound(-1.0, 1.0);
-//         if p.length_squared() >= 1.0 {
-//             continue;
-//         }
-//         return p;
-//     }
-// }
+pub fn random_in_unit_sphere() -> Vec3 {
+    loop {
+        let p = Vec3::random_with_bound(-1.0, 1.0);
+        if p.length_squared() >= 1.0 {
+            continue;
+        }
+        return p;
+    }
+}
 
-pub fn random_unit_vecotr() -> Vec3 {
+pub fn random_unit_vector() -> Vec3 {
     let mut rng = rand::thread_rng();
     let a = rng.gen_range(0.0, 2.0 * PI);
     let z = rng.gen_range(-1.0, 1.0);
     let r = f64::sqrt(1.0 - z * z);
     Vec3::new(r * f64::cos(a), r * f64::sin(a), z)
+}
+
+pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+    v - 2.0 * dot(&v, &n) * n
 }
