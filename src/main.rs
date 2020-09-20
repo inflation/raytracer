@@ -17,11 +17,14 @@ use vec3::*;
 use std::io::Write;
 use std::io::{stderr, stdout};
 
-use rand::prelude::*;
+fn ray_color(r: &Ray, world: &impl Hittable, depth: u32) -> Color {
+    if depth <= 0 {
+        return Color::default();
+    }
 
-fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
-    if let Some(rec) = world.hit(r, 0.0, f64::INFINITY) {
-        return 0.5 * (rec.normal + Color::new(1.0, 1.0, 1.0));
+    if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
+        let target = rec.p + rec.normal + random_unit_vecotr();
+        return 0.5 * ray_color(&Ray::new(rec.p, target - rec.p), world, depth - 1);
     }
     let unit_direction = unit_vector(r.direction());
     let t = 0.5 * (unit_direction.y() + 1.0);
@@ -33,7 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const IMAGE_WIDTH: u32 = 400;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 100;
+    const SAMPLES_PER_PIXEL: u32 = 20;
+    const MAX_DEPTH: u32 = 50;
 
     // World
     let mut world = HittableList::new();
@@ -58,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let v = (j as f64 + rand::random::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
 
                 let r = cam.get_ray(u, v);
-                pixel_color += ray_color(&r, &world);
+                pixel_color += ray_color(&r, &world, MAX_DEPTH);
             }
             write_color(&mut stdout(), pixel_color, SAMPLES_PER_PIXEL)?;
         }

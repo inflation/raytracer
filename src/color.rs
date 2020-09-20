@@ -10,8 +10,14 @@ pub fn write_color(
 ) -> Result<(), std::io::Error> {
     let scale = 1.0 / samples_per_pixel as f64;
     pixel_color *= scale;
-    let (r, g, b) = (pixel_color.x(), pixel_color.y(), pixel_color.z());
+    let (mut r, mut g, mut b) = (pixel_color.x(), pixel_color.y(), pixel_color.z());
 
+    // Gamma-correct for gamma = 2.0
+    r = f64::sqrt(r);
+    g = f64::sqrt(g);
+    b = f64::sqrt(b);
+
+    // Truncate at [0,255]
     writeln!(
         f,
         "{} {} {}",

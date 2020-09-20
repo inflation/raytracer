@@ -1,6 +1,9 @@
 use std::default::Default;
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 
+use rand::Rng;
+pub use std::f64::consts::PI;
+
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
     e: [f64; 3],
@@ -11,6 +14,20 @@ pub type Point3 = Vec3;
 impl Vec3 {
     pub fn new(e0: f64, e1: f64, e2: f64) -> Self {
         Self { e: [e0, e1, e2] }
+    }
+
+    #[inline]
+    pub fn random() -> Self {
+        Self::new(rand::random(), rand::random(), rand::random())
+    }
+
+    pub fn random_with_bound(min: f64, max: f64) -> Self {
+        let mut rng = rand::thread_rng();
+        Self::new(
+            rng.gen_range(min, max),
+            rng.gen_range(min, max),
+            rng.gen_range(min, max),
+        )
     }
 
     pub fn x(&self) -> f64 {
@@ -150,16 +167,34 @@ pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
     u.e[0] * v.e[0] + u.e[1] * v.e[1] + u.e[2] * v.e[2]
 }
 
-#[inline]
-pub fn cross(u: &Vec3, v: &Vec3) -> Vec3 {
-    Vec3::new(
-        u.e[1] * v.e[2] - u.e[2] * v.e[1],
-        u.e[2] * v.e[0] - u.e[0] * v.e[2],
-        u.e[0] * v.e[1] - u.e[1] * v.e[0],
-    )
-}
+// #[inline]
+// pub fn cross(u: &Vec3, v: &Vec3) -> Vec3 {
+//     Vec3::new(
+//         u.e[1] * v.e[2] - u.e[2] * v.e[1],
+//         u.e[2] * v.e[0] - u.e[0] * v.e[2],
+//         u.e[0] * v.e[1] - u.e[1] * v.e[0],
+//     )
+// }
 
 #[inline]
 pub fn unit_vector(v: Vec3) -> Vec3 {
     v / v.length()
+}
+
+// pub fn random_in_unit_sphere() -> Vec3 {
+//     loop {
+//         let p = Vec3::random_with_bound(-1.0, 1.0);
+//         if p.length_squared() >= 1.0 {
+//             continue;
+//         }
+//         return p;
+//     }
+// }
+
+pub fn random_unit_vecotr() -> Vec3 {
+    let mut rng = rand::thread_rng();
+    let a = rng.gen_range(0.0, 2.0 * PI);
+    let z = rng.gen_range(-1.0, 1.0);
+    let r = f64::sqrt(1.0 - z * z);
+    Vec3::new(r * f64::cos(a), r * f64::sin(a), z)
 }
