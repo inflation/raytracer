@@ -4,10 +4,10 @@ use crate::vec3::*;
 pub type Color = Vec3;
 
 pub fn write_color(
-    f: &mut dyn std::io::Write,
+    f: &mut dyn std::fmt::Write,
     mut pixel_color: Color,
     samples_per_pixel: u32,
-) -> Result<(), std::io::Error> {
+) -> Result<(), std::fmt::Error> {
     let scale = 1.0 / samples_per_pixel as f64;
     pixel_color *= scale;
     let (mut r, mut g, mut b) = (pixel_color.x(), pixel_color.y(), pixel_color.z());

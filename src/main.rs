@@ -16,9 +16,10 @@ use ray::*;
 use sphere::*;
 use vec3::*;
 
-use std::io::Write;
-use std::io::{stderr, stdout};
-use std::rc::Rc;
+use std::sync::Arc;
+
+use indicatif::ParallelProgressIterator;
+use rayon::prelude::*;
 
 fn ray_color(r: &Ray, world: &impl Hittable, depth: u32) -> Color {
     if depth <= 0 {
@@ -47,32 +48,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // World
     let mut world = HittableList::new();
 
-    let material_ground = Rc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
-    let material_center = Rc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let material_left = Rc::new(Dielectric::new(1.5));
-    let material_right = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.0));
+    let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
+    let material_center = Arc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
+    let material_left = Arc::new(Dielectric::new(1.5));
+    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.0));
 
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(0.0, -100.5, -1.0),
         100.0,
         material_ground,
     )));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(0.0, 0.0, -1.0),
         0.5,
         material_center,
     )));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(-1.0, 0.0, -1.0),
         0.5,
         material_left.clone(),
     )));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(-1.0, 0.0, -1.0),
         -0.4,
         material_left,
     )));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(1.0, 0.0, -1.0),
         0.5,
         material_right,
@@ -84,25 +85,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Render
     println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
 
-    for j in (0..IMAGE_HEIGHT).rev() {
-        eprint!("\rScanlines remaining: {} ", j);
-        stderr().flush()?;
+    let result: Vec<String> = (0..IMAGE_HEIGHT)
+        .into_par_iter()
+        .rev()
+        .progress_count(IMAGE_HEIGHT.into())
+        .map(|j| {
+            (0..IMAGE_WIDTH)
+                .into_par_iter()
+                .map(|i| {
+                    let mut pixel_color = Color::default();
 
-        for i in 0..IMAGE_WIDTH {
-            let mut pixel_color = Color::default();
+                    for _ in 0..SAMPLES_PER_PIXEL {
+                        let u = (i as f64 + rand::random::<f64>()) / (IMAGE_WIDTH - 1) as f64;
+                        let v = (j as f64 + rand::random::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
 
-            for _ in 0..SAMPLES_PER_PIXEL {
-                let u = (i as f64 + rand::random::<f64>()) / (IMAGE_WIDTH - 1) as f64;
-                let v = (j as f64 + rand::random::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
+                        let r = cam.get_ray(u, v);
+                        pixel_color += ray_color(&r, &world, MAX_DEPTH);
+                    }
 
-                let r = cam.get_ray(u, v);
-                pixel_color += ray_color(&r, &world, MAX_DEPTH);
-            }
-            write_color(&mut stdout(), pixel_color, SAMPLES_PER_PIXEL)?;
-        }
-    }
-
-    eprintln!("\nDone.");
+                    let mut buffer = String::new();
+                    write_color(&mut buffer, pixel_color, SAMPLES_PER_PIXEL).unwrap();
+                    buffer
+                })
+                .collect()
+        })
+        .collect();
+    print!("{}", result.join(""));
 
     Ok(())
 }
