@@ -13,9 +13,9 @@ pub fn write_color(
     let (mut r, mut g, mut b) = (pixel_color.x(), pixel_color.y(), pixel_color.z());
 
     // Gamma-correct for gamma = 2.0
-    r = f64::sqrt(r);
-    g = f64::sqrt(g);
-    b = f64::sqrt(b);
+    r = r.sqrt();
+    g = g.sqrt();
+    b = b.sqrt();
 
     // Truncate at [0,255]
     writeln!(

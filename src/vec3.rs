@@ -41,7 +41,7 @@ impl Vec3 {
     }
 
     pub fn length(&self) -> f64 {
-        f64::sqrt(self.length_squared())
+        self.length_squared().sqrt()
     }
     pub fn length_squared(&self) -> f64 {
         self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2]
@@ -201,4 +201,11 @@ pub fn random_unit_vector() -> Vec3 {
 
 pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
     v - 2.0 * dot(&v, &n) * n
+}
+
+pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
+    let cos_theta = dot(&-uv, &n);
+    let r_out_perp = etai_over_etat * (uv + cos_theta * n);
+    let r_out_parallel = -f64::abs(1.0 - r_out_perp.length_squared()).sqrt() * n;
+    r_out_perp + r_out_parallel
 }

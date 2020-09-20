@@ -50,3 +50,54 @@ impl Material for Metal {
         }
     }
 }
+
+// Dielectric
+pub struct Dielectric {
+    ref_idx: f64,
+}
+
+impl Dielectric {
+    pub fn new(ref_idx: f64) -> Self {
+        Self { ref_idx }
+    }
+}
+
+fn schlick(cosine: f64, ref_idx: f64) -> f64 {
+    let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        let attenuation = Color::new(1.0, 1.0, 1.0);
+        let etai_over_etat = if rec.front_face {
+            1.0 / self.ref_idx
+        } else {
+            self.ref_idx
+        };
+
+        let unit_direction = unit_vector(r_in.direction());
+
+        let cos_theta = dot(&-unit_direction, &rec.normal).min(1.0);
+        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+        if etai_over_etat * sin_theta > 1.0 {
+            let reflected = reflect(unit_vector(r_in.direction()), rec.normal);
+            let scattered = Ray::new(rec.p, reflected);
+
+            return Some((scattered, attenuation));
+        }
+        let reflect_prob = schlick(cos_theta, etai_over_etat);
+        if rand::random::<f64>() < reflect_prob {
+            let reflected = reflect(unit_direction, rec.normal);
+            let scattered = Ray::new(rec.p, reflected);
+
+            return Some((scattered, attenuation));
+        }
+
+        let refracted = refract(unit_direction, rec.normal, etai_over_etat);
+        let scattered = Ray::new(rec.p, refracted);
+
+        Some((scattered, attenuation))
+    }
+}

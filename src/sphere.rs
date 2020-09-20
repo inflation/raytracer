@@ -27,7 +27,7 @@ impl Hittable for Sphere {
         let discriminant = half_b * half_b - a * c;
 
         if discriminant > 0.0 {
-            let root = f64::sqrt(discriminant);
+            let root = discriminant.sqrt();
 
             let mut temp = (-half_b - root) / a;
             if temp < t_max && temp > t_min {
