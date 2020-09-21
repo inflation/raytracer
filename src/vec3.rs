@@ -6,7 +6,7 @@ pub use std::f64::consts::PI;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
-    e: [f64; 3],
+    pub e: [f64; 3],
 }
 
 pub type Point3 = Vec3;

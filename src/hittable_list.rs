@@ -1,9 +1,9 @@
-pub use crate::hittable::*;
+use crate::{aabb::*, hittable::*};
 
 use std::sync::Arc;
 
 pub struct HittableList {
-    objects: Vec<Arc<dyn Hittable>>,
+    pub objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -35,5 +35,20 @@ impl Hittable for HittableList {
         }
 
         final_rec
+    }
+
+    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
+        let first = self.objects.first().and_then(|x| x.bounding_box(t0, t1));
+        if first.is_none() {
+            return None;
+        }
+
+        self.objects.iter().skip(1).fold(first, |acc, x| {
+            if let Some(bounding_box) = x.bounding_box(t0, t1) {
+                Some(surrounding_box(acc.unwrap(), bounding_box))
+            } else {
+                None
+            }
+        })
     }
 }

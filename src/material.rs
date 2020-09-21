@@ -16,9 +16,9 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let scatter_direction = rec.normal + random_unit_vector();
-        let scattered = Ray::new(rec.p, scatter_direction);
+        let scattered = Ray::new(rec.p, scatter_direction, r_in.time());
         let attenuation = self.albedo;
 
         Some((scattered, attenuation))
@@ -40,7 +40,11 @@ impl Metal {
 impl Material for Metal {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-        let scattered = Ray::new(rec.p, reflected + self.fuzz * random_in_unit_sphere());
+        let scattered = Ray::new(
+            rec.p,
+            reflected + self.fuzz * random_in_unit_sphere(),
+            r_in.time(),
+        );
         let attenuation = self.albedo;
 
         if dot(&scattered.direction(), &rec.normal) > 0.0 {
@@ -83,20 +87,20 @@ impl Material for Dielectric {
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
         if etai_over_etat * sin_theta > 1.0 {
             let reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-            let scattered = Ray::new(rec.p, reflected);
+            let scattered = Ray::new(rec.p, reflected, r_in.time());
 
             return Some((scattered, attenuation));
         }
         let reflect_prob = schlick(cos_theta, etai_over_etat);
         if rand::random::<f64>() < reflect_prob {
             let reflected = reflect(unit_direction, rec.normal);
-            let scattered = Ray::new(rec.p, reflected);
+            let scattered = Ray::new(rec.p, reflected, r_in.time());
 
             return Some((scattered, attenuation));
         }
 
         let refracted = refract(unit_direction, rec.normal, etai_over_etat);
-        let scattered = Ray::new(rec.p, refracted);
+        let scattered = Ray::new(rec.p, refracted, r_in.time());
 
         Some((scattered, attenuation))
     }

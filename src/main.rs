@@ -1,8 +1,11 @@
+mod aabb;
+mod bvh;
 mod camera;
 mod color;
 mod hittable;
 mod hittable_list;
 mod material;
+mod moving_sphere;
 mod ray;
 mod sphere;
 mod util;
@@ -10,8 +13,10 @@ mod vec3;
 
 use camera::*;
 use color::*;
+use hittable::*;
 use hittable_list::*;
 use material::*;
+use moving_sphere::*;
 use ray::*;
 use sphere::*;
 use vec3::*;
@@ -36,7 +41,7 @@ fn random_scene() -> HittableList {
     )));
 
     for a in -11..11 {
-        for b in -11..11 {
+        for b in -11..1 {
             let choose_mat: f64 = rand::random();
             let center = Point3::new(
                 a as f64 + 0.9 * rand::random::<f64>(),
@@ -51,7 +56,16 @@ fn random_scene() -> HittableList {
                     // diffuse
                     let albedo = Color::random() * Color::random();
                     sphere_material = Arc::new(Lambertian::new(albedo));
-                    world.add(Arc::new(Sphere::new(center, 0.2, sphere_material)));
+                    let center2 =
+                        center + Vec3::new(0.0, rand::thread_rng().gen_range(0.0, 0.5), 0.0);
+                    world.add(Arc::new(MovingSphere::new(
+                        center,
+                        center2,
+                        0.0,
+                        1.0,
+                        0.2,
+                        sphere_material,
+                    )));
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = Color::random_with_bound(0.5, 1.0);
@@ -105,10 +119,10 @@ fn ray_color(r: &Ray, world: &impl Hittable, depth: u32) -> Color {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Image
-    const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const IMAGE_HEIGHT: u32 = 800;
+    const ASPECT_RATIO: f64 = 16.0 / 9.0;
+    const IMAGE_HEIGHT: u32 = 300;
     const IMAGE_WIDTH: u32 = (IMAGE_HEIGHT as f64 * ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 500;
+    const SAMPLES_PER_PIXEL: u32 = 100;
     const MAX_DEPTH: u32 = 50;
 
     // World
@@ -129,6 +143,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ASPECT_RATIO,
         aperture,
         focus_dist,
+        0.0,
+        1.0,
     );
 
     // Render
