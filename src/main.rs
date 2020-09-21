@@ -20,6 +20,7 @@ use material::*;
 use moving_sphere::*;
 use ray::*;
 use sphere::*;
+use texture::*;
 use vec3::*;
 
 use std::sync::Arc;
@@ -34,7 +35,11 @@ static GLOBAL: mimallocator::Mimalloc = mimallocator::Mimalloc;
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_material = Arc::new(Lambertian::new(0.5, 0.5, 0.5));
+    let checker = Arc::new(CheckerTexture::from_color(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+    let ground_material = Arc::new(Lambertian { albedo: checker });
     world.add(Arc::new(Sphere::new(
         Point3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -102,6 +107,30 @@ fn random_scene() -> HittableList {
     world
 }
 
+fn two_spheres() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let checker = Arc::new(CheckerTexture::from_color(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+
+    objects.add(Arc::new(Sphere::new(
+        Point3::new(0.0, -10.0, 0.0),
+        10.0,
+        Arc::new(Lambertian {
+            albedo: checker.clone(),
+        }),
+    )));
+    objects.add(Arc::new(Sphere::new(
+        Point3::new(0.0, 10.0, 0.0),
+        10.0,
+        Arc::new(Lambertian { albedo: checker }),
+    )));
+
+    objects
+}
+
 fn ray_color(r: &Ray, world: &impl Hittable, depth: u32) -> Color {
     if depth <= 0 {
         return Color::default();
@@ -127,14 +156,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     const MAX_DEPTH: u32 = 50;
 
     // World
-    let world = random_scene();
+    let scene = 2;
+    let world;
 
     // Camera
     let look_from = Point3::new(13.0, 2.0, 3.0);
     let look_at = Point3::new(0.0, 0.0, 0.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let focus_dist = 10.0;
-    let aperture = 0.1;
+    let aperture;
+
+    match scene {
+        1 => {
+            world = random_scene();
+            aperture = 1.0
+        }
+        _ => {
+            world = two_spheres();
+            aperture = 0.0
+        }
+    };
 
     let cam = Camera::new(
         look_from,
