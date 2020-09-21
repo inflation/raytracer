@@ -43,8 +43,8 @@ fn ray_color(r: &Ray, world: &impl Hittable, depth: u32) -> Color {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Image
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: u32 = 400;
-    const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
+    const IMAGE_HEIGHT: u32 = 720;
+    const IMAGE_WIDTH: u32 = (IMAGE_HEIGHT as f64 * ASPECT_RATIO) as u32;
     const SAMPLES_PER_PIXEL: u32 = 100;
     const MAX_DEPTH: u32 = 50;
 
@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )));
     world.add(Arc::new(Sphere::new(
         Point3::new(-1.0, 0.0, -1.0),
-        -0.4,
+        -0.45,
         material_left,
     )));
     world.add(Arc::new(Sphere::new(
@@ -83,7 +83,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )));
 
     // Camera
-    let cam = Camera::default();
+    let cam = Camera::new(
+        Point3::new(-2.0, 2.0, 1.0),
+        Point3::new(0.0, 0.0, -1.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        20.0,
+        ASPECT_RATIO,
+    );
 
     // Render
     println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
