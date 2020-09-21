@@ -1,8 +1,6 @@
 use crate::util::*;
 use crate::vec3::*;
 
-pub type Color = Vec3;
-
 pub fn write_color(
     f: &mut dyn std::fmt::Write,
     mut pixel_color: Color,

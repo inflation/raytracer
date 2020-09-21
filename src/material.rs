@@ -1,4 +1,6 @@
-use crate::{color::*, hittable::*, ray::*, vec3::*};
+use crate::{hittable::*, ray::*, texture::*, vec3::*};
+
+use std::sync::Arc;
 
 pub trait Material: Sync + Send {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
@@ -6,12 +8,18 @@ pub trait Material: Sync + Send {
 
 // Lambertian
 pub struct Lambertian {
-    albedo: Color,
+    pub albedo: Arc<dyn Texture>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Color) -> Self {
-        Self { albedo }
+    pub fn new(r: f64, g: f64, b: f64) -> Self {
+        Self::from_color(Color::new(r, g, b))
+    }
+
+    pub fn from_color(color: Color) -> Self {
+        Self {
+            albedo: Arc::new(SolidColor { color_value: color }),
+        }
     }
 }
 
@@ -19,7 +27,7 @@ impl Material for Lambertian {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let scatter_direction = rec.normal + random_unit_vector();
         let scattered = Ray::new(rec.p, scatter_direction, r_in.time());
-        let attenuation = self.albedo;
+        let attenuation = self.albedo.value(rec.u, rec.v, rec.p);
 
         Some((scattered, attenuation))
     }
@@ -27,13 +35,16 @@ impl Material for Lambertian {
 
 // Metal
 pub struct Metal {
-    albedo: Color,
-    fuzz: f64,
+    pub albedo: Color,
+    pub fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(albedo: Color, fuzz: f64) -> Self {
-        Self { albedo, fuzz }
+    pub fn new(r: f64, g: f64, b: f64, fuzz: f64) -> Self {
+        Self {
+            albedo: Color::new(r, g, b),
+            fuzz,
+        }
     }
 }
 
@@ -47,7 +58,7 @@ impl Material for Metal {
         );
         let attenuation = self.albedo;
 
-        if dot(&scattered.direction(), &rec.normal) > 0.0 {
+        if dot(scattered.direction(), rec.normal) > 0.0 {
             Some((scattered, attenuation))
         } else {
             None
@@ -57,7 +68,7 @@ impl Material for Metal {
 
 // Dielectric
 pub struct Dielectric {
-    ref_idx: f64,
+    pub ref_idx: f64,
 }
 
 impl Dielectric {
@@ -83,7 +94,7 @@ impl Material for Dielectric {
 
         let unit_direction = unit_vector(r_in.direction());
 
-        let cos_theta = dot(&-unit_direction, &rec.normal).min(1.0);
+        let cos_theta = dot(-unit_direction, rec.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
         if etai_over_etat * sin_theta > 1.0 {
             let reflected = reflect(unit_vector(r_in.direction()), rec.normal);

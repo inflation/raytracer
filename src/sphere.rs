@@ -16,13 +16,19 @@ impl Sphere {
             mat_ptr,
         }
     }
+
+    pub fn get_uv(p: Vec3) -> (f64, f64) {
+        let phi = p.z().atan2(p.x());
+        let theta = p.y().asin();
+        (1.0 - (phi + PI) / (2.0 * PI), (theta + PI / 2.0) / PI)
+    }
 }
 
 impl Hittable for Sphere {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = r.origin() - self.center;
         let a = r.direction().length_squared();
-        let half_b = dot(&oc, &r.direction());
+        let half_b = dot(oc, r.direction());
         let c = oc.length_squared() - self.radius * self.radius;
         let discriminant = half_b * half_b - a * c;
 
@@ -34,11 +40,14 @@ impl Hittable for Sphere {
                 let t = temp;
                 let p = r.at(t);
                 let outward_normal = (p - self.center) / self.radius;
+                let (u, v) = Self::get_uv((p - self.center) / self.radius);
                 return Some(HitRecord::new(
                     &r,
                     outward_normal,
                     p,
                     t,
+                    u,
+                    v,
                     self.mat_ptr.clone(),
                 ));
             }
@@ -48,11 +57,14 @@ impl Hittable for Sphere {
                 let t = temp;
                 let p = r.at(t);
                 let outward_normal = (p - self.center) / self.radius;
+                let (u, v) = Self::get_uv((p - self.center) / self.radius);
                 return Some(HitRecord::new(
                     &r,
                     outward_normal,
                     p,
                     t,
+                    u,
+                    v,
                     self.mat_ptr.clone(),
                 ));
             }

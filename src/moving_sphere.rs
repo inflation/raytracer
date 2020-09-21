@@ -1,4 +1,4 @@
-use crate::{aabb::*, hittable::*, material::Material, ray::Ray, vec3::*};
+use crate::{aabb::*, hittable::*, material::Material, ray::Ray, sphere::Sphere, vec3::*};
 
 use std::sync::Arc;
 
@@ -41,7 +41,7 @@ impl Hittable for MovingSphere {
         let current_center = self.center(r.time());
         let oc = r.origin() - current_center;
         let a = r.direction().length_squared();
-        let half_b = dot(&oc, &r.direction());
+        let half_b = dot(oc, r.direction());
         let c = oc.length_squared() - self.radius * self.radius;
         let discriminant = half_b * half_b - a * c;
 
@@ -53,11 +53,14 @@ impl Hittable for MovingSphere {
                 let t = temp;
                 let p = r.at(t);
                 let outward_normal = (p - current_center) / self.radius;
+                let (u, v) = Sphere::get_uv((p - current_center) / self.radius);
                 return Some(HitRecord::new(
                     &r,
                     outward_normal,
                     p,
                     t,
+                    u,
+                    v,
                     self.mat_ptr.clone(),
                 ));
             }
@@ -67,11 +70,14 @@ impl Hittable for MovingSphere {
                 let t = temp;
                 let p = r.at(t);
                 let outward_normal = (p - current_center) / self.radius;
+                let (u, v) = Sphere::get_uv((p - current_center) / self.radius);
                 return Some(HitRecord::new(
                     &r,
                     outward_normal,
                     p,
                     t,
+                    u,
+                    v,
                     self.mat_ptr.clone(),
                 ));
             }

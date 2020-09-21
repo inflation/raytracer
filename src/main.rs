@@ -1,5 +1,5 @@
 mod aabb;
-mod bvh;
+// mod bvh;
 mod camera;
 mod color;
 mod hittable;
@@ -8,6 +8,7 @@ mod material;
 mod moving_sphere;
 mod ray;
 mod sphere;
+mod texture;
 mod util;
 mod vec3;
 
@@ -33,7 +34,7 @@ static GLOBAL: mimallocator::Mimalloc = mimallocator::Mimalloc;
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_material = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    let ground_material = Arc::new(Lambertian::new(0.5, 0.5, 0.5));
     world.add(Arc::new(Sphere::new(
         Point3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -41,7 +42,7 @@ fn random_scene() -> HittableList {
     )));
 
     for a in -11..11 {
-        for b in -11..1 {
+        for b in -11..11 {
             let choose_mat: f64 = rand::random();
             let center = Point3::new(
                 a as f64 + 0.9 * rand::random::<f64>(),
@@ -55,7 +56,7 @@ fn random_scene() -> HittableList {
                 if choose_mat < 0.8 {
                     // diffuse
                     let albedo = Color::random() * Color::random();
-                    sphere_material = Arc::new(Lambertian::new(albedo));
+                    sphere_material = Arc::new(Lambertian::from_color(albedo));
                     let center2 =
                         center + Vec3::new(0.0, rand::thread_rng().gen_range(0.0, 0.5), 0.0);
                     world.add(Arc::new(MovingSphere::new(
@@ -70,7 +71,7 @@ fn random_scene() -> HittableList {
                     // metal
                     let albedo = Color::random_with_bound(0.5, 1.0);
                     let fuzz = rand::thread_rng().gen_range(0.0, 0.5);
-                    sphere_material = Arc::new(Metal::new(albedo, fuzz));
+                    sphere_material = Arc::new(Metal { albedo, fuzz });
                     world.add(Arc::new(Sphere::new(center, 0.2, sphere_material)))
                 } else {
                     // glass
@@ -88,10 +89,10 @@ fn random_scene() -> HittableList {
         glass,
     )));
 
-    let mat = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
+    let mat = Arc::new(Lambertian::new(0.4, 0.2, 0.1));
     world.add(Arc::new(Sphere::new(Point3::new(-4.0, 1.0, 0.0), 1.0, mat)));
 
-    let metal = Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
+    let metal = Arc::new(Metal::new(0.7, 0.6, 0.5, 0.0));
     world.add(Arc::new(Sphere::new(
         Point3::new(4.0, 1.0, 0.0),
         1.0,
