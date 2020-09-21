@@ -21,6 +21,9 @@ use std::sync::Arc;
 use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
 
+#[global_allocator]
+static GLOBAL: mimallocator::Mimalloc = mimallocator::Mimalloc;
+
 fn ray_color(r: &Ray, world: &impl Hittable, depth: u32) -> Color {
     if depth <= 0 {
         return Color::default();
