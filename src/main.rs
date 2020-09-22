@@ -153,6 +153,19 @@ fn two_perlin_spheres() -> HittableList {
     objects
 }
 
+fn earth() -> HittableList {
+    let mut earth = HittableList::new();
+
+    let earth_texture = Arc::new(ImageTexture::new("assets/earthmap.jpg"));
+    let earth_surface = Arc::new(Lambertian {
+        albedo: earth_texture,
+    });
+    let globe = Arc::new(Sphere::new(Point3::default(), 2.0, earth_surface));
+
+    earth.add(globe);
+    earth
+}
+
 fn ray_color(r: &Ray, world: &impl Hittable, depth: u32) -> Color {
     if depth <= 0 {
         return Color::default();
@@ -178,7 +191,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     const MAX_DEPTH: u32 = 50;
 
     // World
-    let scene = 3;
+    let scene = 4;
     let world;
 
     // Camera
@@ -197,8 +210,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         2 => {
             world = two_spheres();
         }
-        _ => {
+        3 => {
             world = two_perlin_spheres();
+        }
+        _ => {
+            world = earth();
         }
     };
 
