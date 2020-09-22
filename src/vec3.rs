@@ -18,12 +18,11 @@ impl Vec3 {
     }
 
     #[inline]
-    pub fn random() -> Self {
-        Self::new(rand::random(), rand::random(), rand::random())
+    pub fn random(rng: &mut impl rand::Rng) -> Self {
+        Self { e: rng.gen() }
     }
 
-    pub fn random_with_bound(min: f64, max: f64) -> Self {
-        let mut rng = rand::thread_rng();
+    pub fn random_with_bound(rng: &mut impl rand::Rng, min: f64, max: f64) -> Self {
         Self::new(
             rng.gen_range(min, max),
             rng.gen_range(min, max),
@@ -183,8 +182,13 @@ pub fn unit_vector(v: Vec3) -> Vec3 {
 }
 
 pub fn random_in_unit_sphere() -> Vec3 {
+    let mut rng = rand::thread_rng();
     loop {
-        let p = Vec3::random_with_bound(-1.0, 1.0);
+        let p = Vec3::new(
+            rng.gen_range(-1.0, 1.0),
+            rng.gen_range(-1.0, 1.0),
+            rng.gen_range(-1.0, 1.0),
+        );
         if p.length_squared() >= 1.0 {
             continue;
         }
@@ -193,8 +197,8 @@ pub fn random_in_unit_sphere() -> Vec3 {
 }
 
 pub fn random_in_unit_disk() -> Vec3 {
+    let mut rng = rand::thread_rng();
     loop {
-        let mut rng = rand::thread_rng();
         let p = Vec3::new(rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0), 0.0);
         if p.length_squared() >= 1.0 {
             continue;
