@@ -5,7 +5,8 @@ use crate::prelude::*;
 
 use std::sync::Arc;
 
-struct BVHNode {
+#[derive(Debug)]
+pub struct BVHNode {
     left: Arc<dyn Hittable>,
     right: Arc<dyn Hittable>,
     bbox: AABB,
@@ -26,6 +27,7 @@ impl BVHNode {
         let bbox;
 
         match object_span {
+            0 => panic!("No Hittable provided"),
             1 => {
                 left = objects[start].clone();
                 right = objects[start].clone();
@@ -83,10 +85,15 @@ impl Hittable for BVHNode {
         if !self.bbox.hit(r, t_min, t_max) {
             None
         } else {
-            self.left
-                .hit(r, t_min, t_max)
-                .and_then(|left| self.right.hit(r, t_min, left.t))
-                .or_else(|| self.right.hit(r, t_min, t_max))
+            if let Some(rec_l) = self.left.hit(r, t_min, t_max) {
+                if let Some(rec_r) = self.right.hit(r, t_min, rec_l.t) {
+                    Some(rec_r)
+                } else {
+                    Some(rec_l)
+                }
+            } else {
+                self.right.hit(r, t_min, t_max)
+            }
         }
     }
 

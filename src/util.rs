@@ -15,6 +15,7 @@ pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
     }
 }
 
+#[derive(Debug)]
 pub struct Perlin {
     ran_vec: Vec<Vec3>,
     perm_x: Vec<usize>,

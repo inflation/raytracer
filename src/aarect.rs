@@ -2,6 +2,7 @@ use crate::{aabb::*, hittable::*, material::*, ray::*, vec3::*};
 
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct XYRect {
     mat_ptr: Arc<dyn Material>,
     x0: f64,
@@ -60,6 +61,7 @@ impl Hittable for XYRect {
     }
 }
 
+#[derive(Debug)]
 pub struct XZRect {
     mat_ptr: Arc<dyn Material>,
     x0: f64,
@@ -117,7 +119,7 @@ impl Hittable for XZRect {
         ))
     }
 }
-
+#[derive(Debug)]
 pub struct YZRect {
     mat_ptr: Arc<dyn Material>,
     y0: f64,

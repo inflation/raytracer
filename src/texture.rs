@@ -1,12 +1,16 @@
 use crate::{util::Perlin, vec3::*};
 
 use image::{DynamicImage, GenericImageView, Pixel};
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
-pub trait Texture: Sync + Send {
+pub trait Texture: Sync + Send
+where
+    Self: Debug,
+{
     fn value(&self, u: f64, v: f64, p: Point3) -> Color;
 }
 
+#[derive(Debug)]
 pub struct SolidColor {
     pub color_value: Color,
 }
@@ -17,6 +21,7 @@ impl Texture for SolidColor {
     }
 }
 
+#[derive(Debug)]
 pub struct CheckerTexture {
     pub odd: Arc<dyn Texture>,
     pub even: Arc<dyn Texture>,
@@ -42,6 +47,7 @@ impl Texture for CheckerTexture {
     }
 }
 
+#[derive(Debug)]
 pub struct NoiseTexture {
     noise: Perlin,
     scale: f64,
@@ -105,5 +111,11 @@ impl Texture for ImageTexture {
             .collect();
 
         Color::new(pixel[0], pixel[1], pixel[2])
+    }
+}
+
+impl Debug for ImageTexture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Image")
     }
 }

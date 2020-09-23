@@ -1,7 +1,7 @@
 use crate::{aabb::AABB, hittable::*, material::Material, ray::Ray, vec3::*};
 
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub struct Sphere {
     center: Point3,
     radius: f64,

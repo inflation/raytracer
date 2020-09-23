@@ -1,7 +1,7 @@
 use crate::{aabb::*, hittable::*};
 
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub struct HittableList {
     pub objects: Vec<Arc<dyn Hittable>>,
 }
@@ -12,10 +12,6 @@ impl HittableList {
             objects: Vec::new(),
         }
     }
-
-    // pub fn clear(&mut self) {
-    //     self.objects.clear();
-    // }
 
     pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object);

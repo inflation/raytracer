@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub struct ConstantMedium {
     boundary: Arc<dyn Hittable>,
     phase_function: Arc<dyn Material>,

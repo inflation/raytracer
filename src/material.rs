@@ -1,8 +1,11 @@
 use crate::{hittable::*, ray::*, texture::*, vec3::*};
 
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
-pub trait Material: Sync + Send {
+pub trait Material: Sync + Send
+where
+    Self: Debug,
+{
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
     fn emitted(&self, _u: f64, _v: f64, _p: Point3) -> Color {
         Color::default()
@@ -10,6 +13,7 @@ pub trait Material: Sync + Send {
 }
 
 // Lambertian
+#[derive(Debug)]
 pub struct Lambertian {
     pub albedo: Arc<dyn Texture>,
 }
@@ -37,6 +41,7 @@ impl Material for Lambertian {
 }
 
 // Metal
+#[derive(Debug)]
 pub struct Metal {
     pub albedo: Color,
     pub fuzz: f64,
@@ -70,6 +75,7 @@ impl Material for Metal {
 }
 
 // Dielectric
+#[derive(Debug)]
 pub struct Dielectric {
     pub ref_idx: f64,
 }
@@ -121,6 +127,7 @@ impl Material for Dielectric {
 }
 
 // Diffuse light
+#[derive(Debug)]
 pub struct DiffuseLight {
     pub emit: Arc<dyn Texture>,
 }
@@ -147,6 +154,7 @@ impl Material for DiffuseLight {
 }
 
 // Isotropic
+#[derive(Debug)]
 pub struct Isotropic {
     pub albedo: Arc<dyn Texture>,
 }

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 pub struct HitRecord {
     pub p: Point3,
@@ -46,11 +46,14 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable: Sync + Send {
+pub trait Hittable: Sync + Send
+where
+    Self: Debug,
+{
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB>;
 }
-
+#[derive(Debug)]
 pub struct Translate {
     inner: Arc<dyn Hittable>,
     offset: Vec3,
@@ -86,7 +89,7 @@ impl Hittable for Translate {
         }
     }
 }
-
+#[derive(Debug)]
 pub struct RotateY {
     inner: Arc<dyn Hittable>,
     sin_theta: f64,

@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::{aarect::*, hittable_list::*};
 
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub struct Cuboid {
     box_min: Point3,
     box_max: Point3,
