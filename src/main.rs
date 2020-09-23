@@ -3,6 +3,7 @@ mod aarect;
 mod bvh;
 mod camera;
 mod color;
+mod constant_medium;
 mod cuboid;
 mod hittable;
 mod hittable_list;
@@ -18,6 +19,7 @@ mod vec3;
 use aarect::*;
 use camera::*;
 use color::*;
+use constant_medium::*;
 use cuboid::*;
 use hittable::*;
 use hittable_list::*;
@@ -253,6 +255,70 @@ fn cornell_box() -> HittableList {
     objects
 }
 
+fn cornell_smoke() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let red = Arc::new(Lambertian::new(0.65, 0.05, 0.05));
+    let white = Arc::new(Lambertian::new(0.73, 0.73, 0.73));
+    let green = Arc::new(Lambertian::new(0.12, 0.45, 0.15));
+    let light = Arc::new(DiffuseLight::new(7.0, 7.0, 7.0));
+
+    objects.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    objects.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    objects.add(Arc::new(XZRect::new(
+        113.0, 443.0, 127.0, 432.0, 554.0, light,
+    )));
+    objects.add(Arc::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    objects.add(Arc::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    objects.add(Arc::new(XYRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    // Boxes
+    let mut box1: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::default(),
+        Point3::new(165.0, 330.0, 165.0),
+        white.clone(),
+    ));
+    box1 = Arc::new(RotateY::new(box1, 15.0));
+    box1 = Arc::new(Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)));
+    let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::default(),
+        Point3 { e: [165.0; 3] },
+        white,
+    ));
+    box2 = Arc::new(RotateY::new(box2, -18.0));
+    box2 = Arc::new(Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)));
+
+    objects.add(Arc::new(ConstantMedium::new(box1, 0.01, Color::default())));
+    objects.add(Arc::new(ConstantMedium::new(
+        box2,
+        0.01,
+        Color { e: [1.0; 3] },
+    )));
+
+    objects
+}
+
 fn ray_color(r: &Ray, background: &Color, world: &impl Hittable, depth: u32) -> Color {
     if depth <= 0 {
         return Color::default();
@@ -279,7 +345,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut samples_per_pixel = 100;
 
     // World
-    let scene = 6;
+    let scene = 7;
     let world;
 
     // Camera
@@ -312,8 +378,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             look_at = Point3::new(0.0, 2.0, 0.0);
             samples_per_pixel = 400;
         }
-        _ => {
+        6 => {
             world = cornell_box();
+            aspect_ratio = 1.0;
+            image_height = 600;
+            samples_per_pixel = 200;
+            background = Color::default();
+            look_from = Point3::new(278.0, 278.0, -800.0);
+            look_at = Point3::new(278.0, 278.0, 0.0);
+            vfov = 40.0;
+        }
+        _ => {
+            world = cornell_smoke();
             aspect_ratio = 1.0;
             image_height = 600;
             samples_per_pixel = 200;
