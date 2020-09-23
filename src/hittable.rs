@@ -181,3 +181,30 @@ impl Hittable for RotateY {
         self.bbox
     }
 }
+
+// Flip face
+#[derive(Debug)]
+pub struct FlipFace {
+    inner: Arc<dyn Hittable>,
+}
+
+impl FlipFace {
+    pub fn new(inner: Arc<dyn Hittable>) -> Self {
+        Self { inner }
+    }
+}
+
+impl Hittable for FlipFace {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        self.inner.hit(r, t_min, t_max).and_then(|rec| {
+            Some(HitRecord {
+                front_face: !rec.front_face,
+                ..rec
+            })
+        })
+    }
+
+    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
+        self.inner.bounding_box(t0, t1)
+    }
+}

@@ -220,6 +220,19 @@ pub fn random_unit_vector() -> Vec3 {
     Vec3::new(r * f64::cos(a), r * f64::sin(a), z)
 }
 
+pub fn random_cosine_direction() -> Vec3 {
+    let mut rng = rand::thread_rng();
+    let r1: f64 = rng.gen();
+    let r2: f64 = rng.gen();
+    let z = (1.0 - r2).sqrt();
+
+    let phi = 2.0 * PI * r1;
+    let x = phi.cos() * r2.sqrt();
+    let y = phi.sin() * r2.sqrt();
+
+    Vec3::new(x, y, z)
+}
+
 pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
     v - 2.0 * dot(v, n) * n
 }

@@ -217,7 +217,9 @@ fn cornell_box() -> HittableList {
 
     objects.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green).into_arc());
     objects.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red).into_arc());
-    objects.add(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, light).into_arc());
+    objects.add(
+        FlipFace::new(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, light).into_arc()).into_arc(),
+    );
     objects.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone()).into_arc());
     objects.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()).into_arc());
     objects.add(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()).into_arc());
@@ -232,6 +234,7 @@ fn cornell_box() -> HittableList {
     box1 = RotateY::new(box1, 15.0).into_arc();
     box1 = Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)).into_arc();
     objects.add(box1);
+
     let mut box2: Arc<dyn Hittable> =
         Cuboid::new(Point3::default(), Point3 { e: [165.0; 3] }, white).into_arc();
     box2 = RotateY::new(box2, -18.0).into_arc();
@@ -390,10 +393,36 @@ fn ray_color(r: &Ray, background: Color, world: &impl Hittable, depth: u32) -> C
         return Color::default();
     }
 
+    let mut rng = rand::thread_rng();
+
     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
-        let emitted = rec.mat_ptr.emitted(rec.u, rec.v, rec.p);
-        if let Some((scattered, attenuation)) = rec.mat_ptr.scatter(r, &rec) {
-            emitted + attenuation * ray_color(&scattered, background, world, depth - 1)
+        let emitted = rec.mat_ptr.emitted(&rec);
+        if let Some((mut scattered, albedo, mut pdf)) = rec.mat_ptr.scatter(r, &rec) {
+            let on_light = Point3::new(
+                rng.gen_range(213.0, 343.0),
+                554.0,
+                rng.gen_range(227.0, 332.0),
+            );
+            let mut to_light = on_light - rec.p;
+            let distance_squared = to_light.length_squared();
+            to_light = unit_vector(to_light);
+
+            if dot(to_light, rec.normal) < 0.0 {
+                return emitted;
+            }
+
+            let light_area = (343 - 213) * (332 - 227);
+            let light_cosine = to_light.y().abs();
+            if light_cosine < 0.000_001 {
+                return emitted;
+            }
+            pdf = distance_squared / (light_cosine * light_area as f64);
+            scattered = Ray::new(rec.p, to_light, r.time());
+            emitted
+                + albedo
+                    * rec.mat_ptr.scattering_pdf(r, &rec, &scattered)
+                    * ray_color(&scattered, background, world, depth - 1)
+                    / pdf
         } else {
             emitted
         }
@@ -410,7 +439,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut samples_per_pixel = 100;
 
     // World
-    let scene = 8;
+    let scene = 6;
     let world;
 
     // Camera
@@ -457,7 +486,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             world = cornell_smoke();
             aspect_ratio = 1.0;
             image_height = 600;
-            samples_per_pixel = 200;
+            samples_per_pixel = 10;
             background = Color::default();
             look_from = Point3::new(278.0, 278.0, -800.0);
             look_at = Point3::new(278.0, 278.0, 0.0);

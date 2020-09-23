@@ -4,8 +4,16 @@ use crate::texture::*;
 use std::{fmt::Debug, sync::Arc};
 
 pub trait Material: Sync + Send + Debug {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
-    fn emitted(&self, _u: f64, _v: f64, _p: Point3) -> Color {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color, PDF)> {
+        None
+    }
+    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        None
+    }
+    fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> PDF {
+        0.0
+    }
+    fn emitted(&self, rec: &HitRecord) -> Color {
         Color::default()
     }
 }
@@ -30,12 +38,19 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
-        let scatter_direction = rec.normal + random_unit_vector();
-        let scattered = Ray::new(rec.p, scatter_direction, r_in.time());
-        let attenuation = self.albedo.value(rec.u, rec.v, rec.p);
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color, PDF)> {
+        let uvw = ONB::from_w(rec.normal);
+        let direction = uvw.local_vec(random_cosine_direction());
+        let scattered = Ray::new(rec.p, unit_vector(direction), r_in.time());
+        let alb = self.albedo.value(rec.u, rec.v, rec.p);
+        let pdf = dot(uvw.w(), scattered.direction()) / PI;
 
-        Some((scattered, attenuation))
+        Some((scattered, alb, pdf))
+    }
+
+    fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> PDF {
+        let cos = dot(rec.normal, unit_vector(scattered.direction()));
+        (cos / PI).max(0.0)
     }
 }
 
@@ -57,7 +72,7 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let reflected = reflect(unit_vector(r_in.direction()), rec.normal);
         let scattered = Ray::new(
             rec.p,
@@ -94,7 +109,7 @@ fn schlick(cosine: f64, ref_idx: f64) -> f64 {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let attenuation = Color::new(1.0, 1.0, 1.0);
         let etai_over_etat = if rec.front_face {
             1.0 / self.ref_idx
@@ -151,11 +166,12 @@ impl DiffuseLight {
 }
 
 impl Material for DiffuseLight {
-    fn scatter(&self, _: &Ray, _: &HitRecord) -> Option<(Ray, Color)> {
-        None
-    }
-    fn emitted(&self, u: f64, v: f64, p: Point3) -> Color {
-        self.emit.value(u, v, p)
+    fn emitted(&self, rec: &HitRecord) -> Color {
+        if rec.front_face {
+            self.emit.value(rec.u, rec.v, rec.p)
+        } else {
+            Color::default()
+        }
     }
 }
 
@@ -175,7 +191,7 @@ impl Isotropic {
 }
 
 impl Material for Isotropic {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let scattered = Ray::new(rec.p, random_in_unit_sphere(), r_in.time());
         let attenuation = self.albedo.value(rec.u, rec.v, rec.p);
 
