@@ -46,12 +46,16 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable: Sync + Send
-where
-    Self: Debug,
-{
+pub trait Hittable: Sync + Send + Debug {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB>;
+
+    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
+        0.0
+    }
+    fn random(&self, _o: Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
+    }
 }
 
 impl<T: Hittable> IntoArc for T {}

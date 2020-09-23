@@ -9,6 +9,7 @@ mod hittable;
 mod hittable_list;
 mod material;
 mod moving_sphere;
+mod pdf;
 mod perlin;
 mod prelude;
 mod ray;
@@ -17,21 +18,18 @@ mod texture;
 mod util;
 mod vec3;
 
+use prelude::*;
+
 use aarect::*;
 use bvh::*;
 use camera::*;
 use color::*;
 use constant_medium::*;
 use cuboid::*;
-use hittable::*;
 use hittable_list::*;
-use material::*;
 use moving_sphere::*;
-use ray::*;
+use pdf::*;
 use sphere::*;
-use texture::*;
-use util::*;
-use vec3::*;
 
 use std::sync::Arc;
 
@@ -388,39 +386,33 @@ fn final_scene() -> HittableList {
     objects
 }
 
-fn ray_color(r: &Ray, background: Color, world: &impl Hittable, depth: u32) -> Color {
+fn ray_color(
+    r: &Ray,
+    background: Color,
+    world: &HittableList,
+    // lights: Arc<dyn Hittable>,
+    depth: u32,
+) -> Color {
     if depth <= 0 {
         return Color::default();
     }
 
-    let mut rng = rand::thread_rng();
-
     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
         let emitted = rec.mat_ptr.emitted(&rec);
         if let Some((mut scattered, albedo, mut pdf)) = rec.mat_ptr.scatter(r, &rec) {
-            let on_light = Point3::new(
-                rng.gen_range(213.0, 343.0),
-                554.0,
-                rng.gen_range(227.0, 332.0),
-            );
-            let mut to_light = on_light - rec.p;
-            let distance_squared = to_light.length_squared();
-            to_light = unit_vector(to_light);
+            let light_shape =
+                XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, NoMaterial {}.into_arc());
+            let p1 = HittablePDF::new(light_shape.into_arc(), rec.p);
+            let p2 = CosinePDF::new(rec.normal);
+            let p = MixturePDF::new(p1.into_arc(), p2.into_arc());
 
-            if dot(to_light, rec.normal) < 0.0 {
-                return emitted;
-            }
+            scattered = Ray::new(rec.p, p.generate(), r.time());
+            pdf = p.value(scattered.direction());
 
-            let light_area = (343 - 213) * (332 - 227);
-            let light_cosine = to_light.y().abs();
-            if light_cosine < 0.000_001 {
-                return emitted;
-            }
-            pdf = distance_squared / (light_cosine * light_area as f64);
-            scattered = Ray::new(rec.p, to_light, r.time());
             emitted
                 + albedo
                     * rec.mat_ptr.scattering_pdf(r, &rec, &scattered)
+                    // * ray_color(&scattered, background, world, lights, depth - 1)
                     * ray_color(&scattered, background, world, depth - 1)
                     / pdf
         } else {
@@ -476,7 +468,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             world = cornell_box();
             aspect_ratio = 1.0;
             image_height = 600;
-            samples_per_pixel = 200;
+            samples_per_pixel = 1000;
             background = Color::default();
             look_from = Point3::new(278.0, 278.0, -800.0);
             look_at = Point3::new(278.0, 278.0, 0.0);

@@ -1,5 +1,6 @@
 use crate::{aabb::*, hittable::*, material::*, ray::*, vec3::*};
 
+use rand::Rng;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -117,6 +118,28 @@ impl Hittable for XZRect {
             Point3::new(self.x0, self.k - 0.0001, self.z0),
             Point3::new(self.x1, self.k + 0.0001, self.z1),
         ))
+    }
+
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+        if let Some(rec) = self.hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY) {
+            let area = (self.x1 - self.x0) * (self.z1 - self.z0);
+            let distance_squared = rec.t * rec.t * v.length_squared();
+            let cos = (dot(v, rec.normal) / v.length()).abs();
+
+            distance_squared / (cos * area)
+        } else {
+            0.0
+        }
+    }
+
+    fn random(&self, o: Vec3) -> Vec3 {
+        let mut rng = rand::thread_rng();
+        let random_point = Point3::new(
+            rng.gen_range(self.x0, self.x1),
+            self.k,
+            rng.gen_range(self.z0, self.z1),
+        );
+        random_point - o
     }
 }
 #[derive(Debug)]

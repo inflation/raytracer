@@ -2,8 +2,6 @@ use std::{ops::Index, sync::Arc};
 
 use crate::vec3::*;
 
-pub type PDF = f64;
-
 pub trait IntoArc: Sized {
     fn into_arc(self) -> Arc<Self> {
         Arc::new(self)
@@ -30,10 +28,7 @@ impl ONB {
         self.axis[2]
     }
 
-    pub fn local(&self, a: f64, b: f64, c: f64) -> Vec3 {
-        a * self.u() + b * self.v() + c * self.w()
-    }
-    pub fn local_vec(&self, a: Vec3) -> Vec3 {
+    pub fn local(&self, a: Vec3) -> Vec3 {
         a.x() * self.u() + a.y() * self.v() + a.z() * self.w()
     }
 

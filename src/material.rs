@@ -3,20 +3,27 @@ use crate::texture::*;
 
 use std::{fmt::Debug, sync::Arc};
 
+type PDF = f64;
+
 pub trait Material: Sync + Send + Debug {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color, PDF)> {
+    fn scatter(&self, _r_in: &Ray, _recc: &HitRecord) -> Option<(Ray, Color, PDF)> {
         None
     }
-    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter2(&self, _r_in: &Ray, _recc: &HitRecord) -> Option<(Ray, Color)> {
         None
     }
-    fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> PDF {
+    fn scattering_pdf(&self, _r_in: &Ray, _recc: &HitRecord, _scattered: &Ray) -> PDF {
         0.0
     }
-    fn emitted(&self, rec: &HitRecord) -> Color {
+    fn emitted(&self, _rec: &HitRecord) -> Color {
         Color::default()
     }
 }
+
+#[derive(Debug)]
+pub struct NoMaterial {}
+impl IntoArc for NoMaterial {}
+impl Material for NoMaterial {}
 
 // Lambertian
 #[derive(Debug)]
@@ -40,7 +47,7 @@ impl Lambertian {
 impl Material for Lambertian {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color, PDF)> {
         let uvw = ONB::from_w(rec.normal);
-        let direction = uvw.local_vec(random_cosine_direction());
+        let direction = uvw.local(random_cosine_direction());
         let scattered = Ray::new(rec.p, unit_vector(direction), r_in.time());
         let alb = self.albedo.value(rec.u, rec.v, rec.p);
         let pdf = dot(uvw.w(), scattered.direction()) / PI;
@@ -48,7 +55,7 @@ impl Material for Lambertian {
         Some((scattered, alb, pdf))
     }
 
-    fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> PDF {
+    fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> PDF {
         let cos = dot(rec.normal, unit_vector(scattered.direction()));
         (cos / PI).max(0.0)
     }
