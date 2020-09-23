@@ -1,5 +1,5 @@
 use std::default::Default;
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub};
 
 use rand::Rng;
 pub use std::f64::consts::PI;
@@ -66,6 +66,11 @@ impl Index<usize> for Vec3 {
     type Output = f64;
     fn index(&self, index: usize) -> &Self::Output {
         &self.e[index]
+    }
+}
+impl IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.e[index]
     }
 }
 

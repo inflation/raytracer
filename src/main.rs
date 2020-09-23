@@ -1,12 +1,14 @@
 mod aabb;
-// mod bvh;
 mod aarect;
+mod bvh;
 mod camera;
 mod color;
+mod cuboid;
 mod hittable;
 mod hittable_list;
 mod material;
 mod moving_sphere;
+mod prelude;
 mod ray;
 mod sphere;
 mod texture;
@@ -16,6 +18,7 @@ mod vec3;
 use aarect::*;
 use camera::*;
 use color::*;
+use cuboid::*;
 use hittable::*;
 use hittable_list::*;
 use material::*;
@@ -220,7 +223,32 @@ fn cornell_box() -> HittableList {
         555.0,
         white.clone(),
     )));
-    objects.add(Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white)));
+    objects.add(Arc::new(XYRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    // Boxes
+    let mut box1: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::default(),
+        Point3::new(165.0, 330.0, 165.0),
+        white.clone(),
+    ));
+    box1 = Arc::new(RotateY::new(box1, 15.0));
+    box1 = Arc::new(Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)));
+    objects.add(box1);
+    let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::default(),
+        Point3 { e: [165.0; 3] },
+        white,
+    ));
+    box2 = Arc::new(RotateY::new(box2, -18.0));
+    box2 = Arc::new(Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)));
+    objects.add(box2);
 
     objects
 }

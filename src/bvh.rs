@@ -1,6 +1,7 @@
 use rand::Rng;
 
-use crate::{aabb::*, hittable::*, hittable_list::*};
+use crate::hittable_list::*;
+use crate::prelude::*;
 
 use std::sync::Arc;
 

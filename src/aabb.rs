@@ -1,4 +1,4 @@
-use crate::vec3::*;
+use crate::prelude::*;
 
 #[derive(Debug, Copy, Clone)]
 pub struct AABB {
@@ -30,7 +30,7 @@ impl std::default::Default for AABB {
 
 impl AABB {
     #[inline]
-    pub fn hit(&self, r: &crate::ray::Ray, t_min: f64, t_max: f64) -> bool {
+    pub fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> bool {
         for a in 0..3 {
             let inv_d = 1.0 / r.direction()[a];
             let mut t0 = (self.min[a] - r.origin()[a]) * inv_d;
