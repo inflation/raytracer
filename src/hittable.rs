@@ -53,6 +53,9 @@ where
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB>;
 }
+
+impl<T: Hittable> IntoArc for T {}
+
 #[derive(Debug)]
 pub struct Translate {
     inner: Arc<dyn Hittable>,
@@ -146,6 +149,7 @@ impl Hittable for RotateY {
         let mut origin = r.origin();
         let mut direction = r.direction();
 
+        // Ray inversely rotated
         origin[0] = self.cos_theta * r.origin()[0] - self.sin_theta * r.origin()[2];
         origin[2] = self.sin_theta * r.origin()[0] + self.cos_theta * r.origin()[2];
 
@@ -158,11 +162,11 @@ impl Hittable for RotateY {
             let mut p = rec.p;
             let mut normal = rec.normal;
 
-            p[0] = self.cos_theta * rec.p[0] - self.sin_theta * rec.p[2];
-            p[2] = self.sin_theta * rec.p[0] + self.cos_theta * rec.p[2];
+            p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];
+            p[2] = -self.sin_theta * rec.p[0] + self.cos_theta * rec.p[2];
 
-            normal[0] = self.cos_theta * rec.normal[0] - self.sin_theta * rec.normal[2];
-            normal[2] = self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
+            normal[0] = self.cos_theta * rec.normal[0] + self.sin_theta * rec.normal[2];
+            normal[2] = -self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
 
             rec.p = p;
             rec.set_face_normal(&rotated_r, normal);

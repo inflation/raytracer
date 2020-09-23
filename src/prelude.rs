@@ -1,1 +1,1 @@
-pub use crate::{aabb::*, hittable::*, material::*, ray::*, vec3::*};
+pub use crate::{aabb::*, hittable::*, material::*, ray::*, util::*, vec3::*};

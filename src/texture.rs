@@ -1,12 +1,11 @@
-use crate::{util::Perlin, vec3::*};
+use crate::prelude::*;
+
+use crate::perlin::*;
 
 use image::{DynamicImage, GenericImageView, Pixel};
 use std::{fmt::Debug, sync::Arc};
 
-pub trait Texture: Sync + Send
-where
-    Self: Debug,
-{
+pub trait Texture: Sync + Send + Debug {
     fn value(&self, u: f64, v: f64, p: Point3) -> Color;
 }
 
@@ -20,6 +19,7 @@ impl Texture for SolidColor {
         self.color_value
     }
 }
+impl IntoArc for SolidColor {}
 
 #[derive(Debug)]
 pub struct CheckerTexture {
@@ -28,7 +28,7 @@ pub struct CheckerTexture {
 }
 
 impl CheckerTexture {
-    pub fn from_color(c1: Color, c2: Color) -> Self {
+    pub fn new(c1: Color, c2: Color) -> Self {
         Self {
             even: Arc::new(SolidColor { color_value: c1 }),
             odd: Arc::new(SolidColor { color_value: c2 }),
@@ -46,6 +46,8 @@ impl Texture for CheckerTexture {
         }
     }
 }
+
+impl IntoArc for CheckerTexture {}
 
 #[derive(Debug)]
 pub struct NoiseTexture {
@@ -66,9 +68,11 @@ impl Texture for NoiseTexture {
     fn value(&self, _u: f64, _v: f64, p: Point3) -> Color {
         Color::new(1.0, 1.0, 1.0)
             * 0.5
-            * (1.0 + (self.scale * p.z() + 10.0 * self.noise.turb(self.scale * p, 7)).sin())
+            * (1.0 + (self.scale * p.z() + 10.0 * self.noise.turb(p, 7)).sin())
     }
 }
+
+impl IntoArc for NoiseTexture {}
 
 pub struct ImageTexture {
     image: DynamicImage,
@@ -119,3 +123,5 @@ impl Debug for ImageTexture {
         writeln!(f, "Image")
     }
 }
+
+impl IntoArc for ImageTexture {}

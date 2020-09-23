@@ -1,7 +1,8 @@
 use rand::Rng;
 
-use crate::hittable_list::*;
 use crate::prelude::*;
+
+use crate::hittable_list::*;
 
 use std::sync::Arc;
 
@@ -45,8 +46,8 @@ impl BVHNode {
             _ => {
                 objects[start..end].sort_unstable_by(|x, y| Self::compare(axis, x, y));
                 let mid = start + object_span / 2;
-                left = Arc::new(BVHNode::new(objects, start, mid, time0, time1));
-                right = Arc::new(BVHNode::new(objects, mid, end, time0, time1));
+                left = BVHNode::new(objects, start, mid, time0, time1).into_arc();
+                right = BVHNode::new(objects, mid, end, time0, time1).into_arc();
             }
         }
 
@@ -61,7 +62,7 @@ impl BVHNode {
         Self { left, right, bbox }
     }
 
-    pub fn new_with_list(list: &mut HittableList, time0: f64, time1: f64) -> Self {
+    pub fn new_with_list(mut list: HittableList, time0: f64, time1: f64) -> Self {
         let length = list.objects.len();
         Self::new(&mut list.objects, 0, length, time0, time1)
     }
@@ -80,20 +81,14 @@ impl BVHNode {
 }
 
 impl Hittable for BVHNode {
-    // TODO: Double check for correctness
     fn hit(&self, r: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         if !self.bbox.hit(r, t_min, t_max) {
             None
         } else {
-            if let Some(rec_l) = self.left.hit(r, t_min, t_max) {
-                if let Some(rec_r) = self.right.hit(r, t_min, rec_l.t) {
-                    Some(rec_r)
-                } else {
-                    Some(rec_l)
-                }
-            } else {
-                self.right.hit(r, t_min, t_max)
-            }
+            self.left
+                .hit(r, t_min, t_max)
+                .and_then(|rec_l| self.right.hit(r, t_min, rec_l.t).or(Some(rec_l)))
+                .or_else(|| self.right.hit(r, t_min, t_max))
         }
     }
 

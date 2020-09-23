@@ -1,11 +1,9 @@
-use crate::{hittable::*, ray::*, texture::*, vec3::*};
+use crate::prelude::*;
+use crate::texture::*;
 
 use std::{fmt::Debug, sync::Arc};
 
-pub trait Material: Sync + Send
-where
-    Self: Debug,
-{
+pub trait Material: Sync + Send + Debug {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
     fn emitted(&self, _u: f64, _v: f64, _p: Point3) -> Color {
         Color::default()
@@ -17,6 +15,7 @@ where
 pub struct Lambertian {
     pub albedo: Arc<dyn Texture>,
 }
+impl IntoArc for Lambertian {}
 
 impl Lambertian {
     pub fn new(r: f64, g: f64, b: f64) -> Self {
@@ -46,6 +45,7 @@ pub struct Metal {
     pub albedo: Color,
     pub fuzz: f64,
 }
+impl IntoArc for Metal {}
 
 impl Metal {
     pub fn new(r: f64, g: f64, b: f64, fuzz: f64) -> Self {
@@ -79,6 +79,7 @@ impl Material for Metal {
 pub struct Dielectric {
     pub ref_idx: f64,
 }
+impl IntoArc for Dielectric {}
 
 impl Dielectric {
     pub fn new(ref_idx: f64) -> Self {
@@ -131,6 +132,7 @@ impl Material for Dielectric {
 pub struct DiffuseLight {
     pub emit: Arc<dyn Texture>,
 }
+impl IntoArc for DiffuseLight {}
 
 impl DiffuseLight {
     pub fn new(r: f64, g: f64, b: f64) -> Self {
@@ -141,6 +143,10 @@ impl DiffuseLight {
         Self {
             emit: Arc::new(SolidColor { color_value: color }),
         }
+    }
+
+    pub fn white(s: f64) -> Self {
+        Self::new(s, s, s)
     }
 }
 
@@ -158,6 +164,7 @@ impl Material for DiffuseLight {
 pub struct Isotropic {
     pub albedo: Arc<dyn Texture>,
 }
+impl IntoArc for Isotropic {}
 
 impl Isotropic {
     pub fn from_color(color: Color) -> Self {

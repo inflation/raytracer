@@ -1,4 +1,4 @@
-use crate::{aabb::AABB, hittable::*, material::Material, ray::Ray, vec3::*};
+use crate::prelude::*;
 
 use std::sync::Arc;
 #[derive(Debug)]
