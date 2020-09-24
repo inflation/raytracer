@@ -57,8 +57,19 @@ pub trait Hittable: Sync + Send + Debug {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }
-
 impl<T: Hittable> IntoArc for T {}
+
+#[derive(Debug)]
+pub struct NoObject {}
+impl Hittable for NoObject {
+    fn hit(&self, _: &Ray, _: f64, _: f64) -> Option<HitRecord> {
+        None
+    }
+
+    fn bounding_box(&self, _: f64, _: f64) -> Option<AABB> {
+        None
+    }
+}
 
 #[derive(Debug)]
 pub struct Translate {

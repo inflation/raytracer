@@ -1,23 +1,25 @@
 use crate::prelude::*;
-use crate::texture::*;
+
+use crate::pdf::*;
 
 use std::{fmt::Debug, sync::Arc};
 
-type PDF = f64;
-
 pub trait Material: Sync + Send + Debug {
-    fn scatter(&self, _r_in: &Ray, _recc: &HitRecord) -> Option<(Ray, Color, PDF)> {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<ScatterRecord> {
         None
     }
-    fn scatter2(&self, _r_in: &Ray, _recc: &HitRecord) -> Option<(Ray, Color)> {
-        None
-    }
-    fn scattering_pdf(&self, _r_in: &Ray, _recc: &HitRecord, _scattered: &Ray) -> PDF {
+    fn scattering_pdf(&self, _r_in: &Ray, _rec: &HitRecord, _scattered: &Ray) -> f64 {
         0.0
     }
     fn emitted(&self, _rec: &HitRecord) -> Color {
         Color::default()
     }
+}
+
+pub struct ScatterRecord {
+    pub specular_ray: Option<Ray>,
+    pub attenuation: Color,
+    pub pdf_ptr: Option<Arc<dyn PDF>>,
 }
 
 #[derive(Debug)]
@@ -45,17 +47,15 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color, PDF)> {
-        let uvw = ONB::from_w(rec.normal);
-        let direction = uvw.local(random_cosine_direction());
-        let scattered = Ray::new(rec.p, unit_vector(direction), r_in.time());
-        let alb = self.albedo.value(rec.u, rec.v, rec.p);
-        let pdf = dot(uvw.w(), scattered.direction()) / PI;
-
-        Some((scattered, alb, pdf))
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
+        Some(ScatterRecord {
+            specular_ray: None,
+            attenuation: self.albedo.value(rec.u, rec.v, rec.p),
+            pdf_ptr: Some(CosinePDF::new(rec.normal).into_arc()),
+        })
     }
 
-    fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> PDF {
+    fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
         let cos = dot(rec.normal, unit_vector(scattered.direction()));
         (cos / PI).max(0.0)
     }
@@ -79,20 +79,17 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-        let scattered = Ray::new(
-            rec.p,
-            reflected + self.fuzz * random_in_unit_sphere(),
-            r_in.time(),
-        );
-        let attenuation = self.albedo;
-
-        if dot(scattered.direction(), rec.normal) > 0.0 {
-            Some((scattered, attenuation))
-        } else {
-            None
-        }
+        Some(ScatterRecord {
+            specular_ray: Some(Ray::new(
+                rec.p,
+                reflected + self.fuzz * random_in_unit_sphere(),
+                0.0,
+            )),
+            attenuation: self.albedo,
+            pdf_ptr: None,
+        })
     }
 }
 
@@ -116,7 +113,10 @@ fn schlick(cosine: f64, ref_idx: f64) -> f64 {
 }
 
 impl Material for Dielectric {
-    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
+        let ray_direction;
+        let scattered;
+
         let attenuation = Color::new(1.0, 1.0, 1.0);
         let etai_over_etat = if rec.front_face {
             1.0 / self.ref_idx
@@ -128,24 +128,20 @@ impl Material for Dielectric {
 
         let cos_theta = dot(-unit_direction, rec.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
-        if etai_over_etat * sin_theta > 1.0 {
-            let reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-            let scattered = Ray::new(rec.p, reflected, r_in.time());
-
-            return Some((scattered, attenuation));
-        }
         let reflect_prob = schlick(cos_theta, etai_over_etat);
-        if rand::random::<f64>() < reflect_prob {
-            let reflected = reflect(unit_direction, rec.normal);
-            let scattered = Ray::new(rec.p, reflected, r_in.time());
 
-            return Some((scattered, attenuation));
+        if etai_over_etat * sin_theta > 1.0 || rand::random::<f64>() < reflect_prob {
+            ray_direction = reflect(unit_direction, rec.normal);
+        } else {
+            ray_direction = refract(unit_direction, rec.normal, etai_over_etat);
         }
+        scattered = Ray::new(rec.p, ray_direction, r_in.time());
 
-        let refracted = refract(unit_direction, rec.normal, etai_over_etat);
-        let scattered = Ray::new(rec.p, refracted, r_in.time());
-
-        Some((scattered, attenuation))
+        Some(ScatterRecord {
+            specular_ray: Some(scattered),
+            attenuation,
+            pdf_ptr: None,
+        })
     }
 }
 
@@ -198,10 +194,14 @@ impl Isotropic {
 }
 
 impl Material for Isotropic {
-    fn scatter2(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let scattered = Ray::new(rec.p, random_in_unit_sphere(), r_in.time());
         let attenuation = self.albedo.value(rec.u, rec.v, rec.p);
 
-        Some((scattered, attenuation))
+        Some(ScatterRecord {
+            specular_ray: Some(scattered),
+            attenuation,
+            pdf_ptr: None,
+        })
     }
 }

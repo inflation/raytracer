@@ -175,7 +175,7 @@ fn earth() -> HittableList {
     earth
 }
 
-fn simple_light() -> HittableList {
+fn simple_light() -> (HittableList, Arc<dyn Hittable>) {
     let mut objects = HittableList::new();
 
     let pertext = NoiseTexture::new(4.0).into_arc();
@@ -200,12 +200,13 @@ fn simple_light() -> HittableList {
     );
 
     let difflight = DiffuseLight::white(4.0).into_arc();
-    objects.add(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight).into_arc());
+    let lights = XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight).into_arc();
+    objects.add(lights.clone());
 
-    objects
+    (objects, lights)
 }
 
-fn cornell_box() -> HittableList {
+fn cornell_box() -> (HittableList, Arc<dyn Hittable>) {
     let mut objects = HittableList::new();
 
     let red = Lambertian::new(0.65, 0.05, 0.05).into_arc();
@@ -213,36 +214,65 @@ fn cornell_box() -> HittableList {
     let green = Lambertian::new(0.12, 0.45, 0.15).into_arc();
     let light = DiffuseLight::white(15.0).into_arc();
 
+    objects.add(
+        FlipFace::new(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, light.clone()).into_arc())
+            .into_arc(),
+    );
+
     objects.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green).into_arc());
     objects.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red).into_arc());
-    objects.add(
-        FlipFace::new(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, light).into_arc()).into_arc(),
-    );
     objects.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone()).into_arc());
     objects.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()).into_arc());
     objects.add(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()).into_arc());
 
     // Boxes
+    let glass = Dielectric::new(1.5).into_arc();
     let mut box1: Arc<dyn Hittable> = Cuboid::new(
         Point3::default(),
         Point3::new(165.0, 330.0, 165.0),
         white.clone(),
     )
     .into_arc();
+    // let aluminum = Metal::new(0.8, 0.85, 0.88, 0.0).into_arc();
+    // let mut box1: Arc<dyn Hittable> = Cuboid::new(
+    //     Point3::default(),
+    //     Point3::new(165.0, 330.0, 165.0),
+    //     aluminuium,
+    // )
+    // .into_arc();
     box1 = RotateY::new(box1, 15.0).into_arc();
     box1 = Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)).into_arc();
     objects.add(box1);
 
-    let mut box2: Arc<dyn Hittable> =
-        Cuboid::new(Point3::default(), Point3 { e: [165.0; 3] }, white).into_arc();
-    box2 = RotateY::new(box2, -18.0).into_arc();
-    box2 = Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)).into_arc();
-    objects.add(box2);
+    // let mut box2: Arc<dyn Hittable> =
+    //     Cuboid::new(Point3::default(), Point3 { e: [165.0; 3] }, white).into_arc();
+    // box2 = RotateY::new(box2, -18.0).into_arc();
+    // box2 = Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)).into_arc();
+    // objects.add(box2);
 
-    objects
+    let sphere: Arc<dyn Hittable> =
+        Sphere::new(Point3::new(190.0, 90.0, 190.0), 90.0, glass).into_arc();
+    objects.add(sphere.clone());
+
+    // (objects, upper_light)
+
+    let mut lights = HittableList::new();
+    let light_shape =
+        XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, NoMaterial {}.into_arc()).into_arc();
+    let sphere_shape: Arc<dyn Hittable> = Sphere::new(
+        Point3::new(190.0, 90.0, 190.0),
+        90.0,
+        NoMaterial {}.into_arc(),
+    )
+    .into_arc();
+
+    lights.add(light_shape);
+    lights.add(sphere_shape);
+
+    (objects, lights.into_arc())
 }
 
-fn cornell_smoke() -> HittableList {
+fn cornell_smoke() -> (HittableList, Arc<dyn Hittable>) {
     let mut objects = HittableList::new();
 
     let red = Lambertian::new(0.65, 0.05, 0.05).into_arc();
@@ -250,9 +280,11 @@ fn cornell_smoke() -> HittableList {
     let green = Lambertian::new(0.12, 0.45, 0.15).into_arc();
     let light = DiffuseLight::white(7.0).into_arc();
 
+    let lights = XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, light.clone()).into_arc();
+    objects.add(FlipFace::new(lights.clone()).into_arc());
+
     objects.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green).into_arc());
     objects.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red).into_arc());
-    objects.add(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, light).into_arc());
     objects.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone()).into_arc());
     objects.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()).into_arc());
     objects.add(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()).into_arc());
@@ -274,12 +306,13 @@ fn cornell_smoke() -> HittableList {
     objects.add(ConstantMedium::new(box1, 0.01, Color::default()).into_arc());
     objects.add(ConstantMedium::new(box2, 0.01, Color { e: [1.0; 3] }).into_arc());
 
-    objects
+    (objects, lights)
 }
 
-fn final_scene() -> HittableList {
+fn final_scene() -> (HittableList, Arc<dyn Hittable>) {
     let mut rng = rand::thread_rng();
     let mut objects = HittableList::new();
+    let mut lights = HittableList::new();
 
     let mut boxes1 = HittableList::new();
     let ground = Lambertian::new(0.48, 0.83, 0.53).into_arc();
@@ -307,14 +340,14 @@ fn final_scene() -> HittableList {
     }
     objects.add(BVHNode::new_with_list(boxes1, 0.0, 1.0).into_arc());
 
-    let light = Arc::new(DiffuseLight::new(7.0, 7.0, 7.0));
-    objects.add(Arc::new(XZRect::new(
-        123.0, 423.0, 147.0, 412.0, 554.0, light,
-    )));
+    let light = DiffuseLight::new(7.0, 7.0, 7.0).into_arc();
+    let upper_light = XZRect::new(123.0, 423.0, 147.0, 412.0, 554.0, light.clone()).into_arc();
+    objects.add(FlipFace::new(upper_light.clone()).into_arc());
+    lights.add(upper_light);
 
     let center1 = Point3::new(400.0, 400.0, 200.0);
     let center2 = center1 + Vec3::new(30.0, 0.0, 0.0);
-    let moving_sphere_material = Arc::new(Lambertian::new(0.7, 0.3, 0.1));
+    let moving_sphere_material = Lambertian::new(0.7, 0.3, 0.1).into_arc();
     objects.add(
         MovingSphere::new(center1, center2, 0.0, 1.0, 50.0, moving_sphere_material).into_arc(),
     );
@@ -331,7 +364,7 @@ fn final_scene() -> HittableList {
         Sphere::new(
             Point3::new(0.0, 150.0, 145.0),
             50.0,
-            Arc::new(Metal::new(0.8, 0.8, 0.9, 10.0)),
+            Metal::new(0.8, 0.8, 0.9, 10.0).into_arc(),
         )
         .into_arc(),
     );
@@ -339,10 +372,11 @@ fn final_scene() -> HittableList {
     let boundary = Sphere::new(
         Point3::new(360.0, 150.0, 145.0),
         70.0,
-        Arc::new(Dielectric::new(1.5)),
+        Dielectric::new(1.5).into_arc(),
     )
     .into_arc();
     objects.add(boundary.clone());
+    lights.add(boundary.clone());
     objects.add(ConstantMedium::new(boundary, 0.2, Color::new(0.2, 0.4, 0.9)).into_arc());
     let boundary =
         Sphere::new(Point3::default(), 5000.0, Dielectric::new(1.5).into_arc()).into_arc();
@@ -383,14 +417,14 @@ fn final_scene() -> HittableList {
         .into_arc(),
     );
 
-    objects
+    (objects, lights.into_arc())
 }
 
 fn ray_color(
     r: &Ray,
     background: Color,
     world: &HittableList,
-    // lights: Arc<dyn Hittable>,
+    lights: Arc<dyn Hittable>,
     depth: u32,
 ) -> Color {
     if depth <= 0 {
@@ -399,22 +433,26 @@ fn ray_color(
 
     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
         let emitted = rec.mat_ptr.emitted(&rec);
-        if let Some((mut scattered, albedo, mut pdf)) = rec.mat_ptr.scatter(r, &rec) {
-            let light_shape =
-                XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, NoMaterial {}.into_arc());
-            let p1 = HittablePDF::new(light_shape.into_arc(), rec.p);
-            let p2 = CosinePDF::new(rec.normal);
-            let p = MixturePDF::new(p1.into_arc(), p2.into_arc());
+        if let Some(ScatterRecord {
+            specular_ray,
+            attenuation,
+            pdf_ptr,
+        }) = rec.mat_ptr.scatter(r, &rec)
+        {
+            if let Some(specular) = specular_ray {
+                return attenuation * ray_color(&specular, background, world, lights, depth - 1);
+            }
+            let light_pdf = HittablePDF::new(lights.clone(), rec.p);
+            let p = MixturePDF::new(light_pdf.into_arc(), pdf_ptr.unwrap());
 
-            scattered = Ray::new(rec.p, p.generate(), r.time());
-            pdf = p.value(scattered.direction());
+            let scattered = Ray::new(rec.p, p.generate(), r.time());
+            let pdf_val = p.value(scattered.direction());
 
             emitted
-                + albedo
+                + attenuation
                     * rec.mat_ptr.scattering_pdf(r, &rec, &scattered)
-                    // * ray_color(&scattered, background, world, lights, depth - 1)
-                    * ray_color(&scattered, background, world, depth - 1)
-                    / pdf
+                    * ray_color(&scattered, background, world, lights, depth - 1)
+                    / pdf_val
         } else {
             emitted
         }
@@ -433,6 +471,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // World
     let scene = 6;
     let world;
+    let mut lights: Arc<dyn Hittable> = NoObject {}.into_arc();
 
     // Camera
     let mut look_from = Point3::new(13.0, 2.0, 3.0);
@@ -458,14 +497,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             world = earth();
         }
         5 => {
-            world = simple_light();
+            let (w, l) = simple_light();
+            world = w;
+            lights = l;
+
             background = Color::default();
             look_from = Point3::new(26.0, 3.0, 6.0);
             look_at = Point3::new(0.0, 2.0, 0.0);
             samples_per_pixel = 400;
         }
         6 => {
-            world = cornell_box();
+            let (w, l) = cornell_box();
+            world = w;
+            lights = l;
+
             aspect_ratio = 1.0;
             image_height = 600;
             samples_per_pixel = 1000;
@@ -475,20 +520,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             vfov = 40.0;
         }
         7 => {
-            world = cornell_smoke();
+            let (w, l) = cornell_smoke();
+            world = w;
+            lights = l;
+
             aspect_ratio = 1.0;
             image_height = 600;
-            samples_per_pixel = 10;
+            samples_per_pixel = 1000;
             background = Color::default();
             look_from = Point3::new(278.0, 278.0, -800.0);
             look_at = Point3::new(278.0, 278.0, 0.0);
             vfov = 40.0;
         }
         _ => {
-            world = final_scene();
+            let (w, l) = final_scene();
+            world = w;
+            lights = l;
+
             aspect_ratio = 1.0;
             image_height = 800;
-            samples_per_pixel = 10_000;
+            // samples_per_pixel = 10_000;
+            samples_per_pixel = 10;
             background = Color::default();
             look_from = Point3::new(478.0, 278.0, -600.0);
             look_at = Point3::new(278.0, 278.0, 0.0);
@@ -529,7 +581,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let v = (j as f64 + rng.gen::<f64>()) / (image_height - 1) as f64;
 
                         let r = cam.get_ray(u, v);
-                        pixel_color += ray_color(&r, background, &world, MAX_DEPTH);
+                        pixel_color += ray_color(&r, background, &world, lights.clone(), MAX_DEPTH);
                     }
 
                     let mut buffer = String::new();

@@ -1,5 +1,6 @@
-use crate::{aabb::*, hittable::*};
+use crate::prelude::*;
 
+use rand::Rng;
 use std::sync::Arc;
 #[derive(Debug)]
 pub struct HittableList {
@@ -46,5 +47,22 @@ impl Hittable for HittableList {
                 None
             }
         })
+    }
+
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+        let weight = 1.0 / self.objects.len() as f64;
+        let mut sum = 0.0;
+
+        for object in &self.objects {
+            sum += weight * object.pdf_value(o, v);
+        }
+
+        sum
+    }
+
+    fn random(&self, o: Vec3) -> Vec3 {
+        let size = self.objects.len();
+        let index = rand::thread_rng().gen_range(0, size);
+        self.objects[index].random(o)
     }
 }

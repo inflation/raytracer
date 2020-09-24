@@ -1,11 +1,13 @@
 use crate::prelude::*;
 
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
-pub trait PDF {
+pub trait PDF: Debug {
     fn value(&self, direction: Vec3) -> f64;
     fn generate(&self) -> Vec3;
 }
+
+#[derive(Debug)]
 
 pub struct CosinePDF {
     uvw: ONB,
@@ -32,6 +34,7 @@ impl PDF for CosinePDF {
     }
 }
 
+#[derive(Debug)]
 pub struct HittablePDF {
     o: Point3,
     ptr: Arc<dyn Hittable>,
@@ -53,6 +56,7 @@ impl PDF for HittablePDF {
     }
 }
 
+#[derive(Debug)]
 pub struct MixturePDF {
     p: [Arc<dyn PDF>; 2],
 }

@@ -81,4 +81,24 @@ impl Hittable for Sphere {
             self.center + radius_vec,
         ))
     }
+
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+        if let Some(_) = self.hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY) {
+            let cos_theta_max =
+                (1.0 - self.radius * self.radius / (self.center - o).length_squared()).sqrt();
+            let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
+
+            1.0 / solid_angle
+        } else {
+            0.0
+        }
+    }
+
+    fn random(&self, o: Vec3) -> Vec3 {
+        let direction = self.center - o;
+        let distance_squared = direction.length_squared();
+        let uvw = ONB::from_w(direction);
+
+        uvw.local(random_to_sphere(self.radius, distance_squared))
+    }
 }
