@@ -19,7 +19,7 @@ pub trait Material: Sync + Send + Debug {
 pub struct ScatterRecord {
     pub specular_ray: Option<Ray>,
     pub attenuation: Color,
-    pub pdf_ptr: Option<Arc<dyn PDF>>,
+    pub pdf_ptr: Option<Box<dyn PDF>>,
 }
 
 // Lambertian

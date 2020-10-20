@@ -2,15 +2,13 @@ use prelude::*;
 
 use camera::*;
 use color::*;
-use hittable_list::*;
 use pdf::*;
 use worlds::*;
-
-use std::sync::Arc;
 
 use indicatif::ParallelProgressIterator;
 use rand::Rng;
 use rayon::prelude::*;
+use std::sync::Arc;
 
 #[macro_use]
 mod util;
@@ -38,18 +36,12 @@ mod worlds;
 #[global_allocator]
 static GLOBAL: mimallocator::Mimalloc = mimallocator::Mimalloc;
 
-fn ray_color(
-    r: &Ray,
-    background: Color,
-    world: &HittableList,
-    lights: Arc<dyn Hittable>,
-    depth: u32,
-) -> Color {
+fn ray_color(r: &Ray, background: Color, world: Arc<World>, depth: u32) -> Color {
     if depth == 0 {
         return Color::BLACK;
     }
 
-    if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
+    if let Some(rec) = world.world().hit(r, 0.001, f64::INFINITY) {
         let emitted = rec.mat_ptr.emitted(&rec);
         if let Some(ScatterRecord {
             specular_ray,
@@ -58,18 +50,20 @@ fn ray_color(
         }) = rec.mat_ptr.scatter(r, &rec)
         {
             if let Some(specular) = specular_ray {
-                return attenuation * ray_color(&specular, background, world, lights, depth - 1);
+                return attenuation * ray_color(&specular, background, world, depth - 1);
             }
-            let light_pdf = HittablePDF::new(lights.clone(), rec.p);
+            let light_pdf = HittablePDF::new(world.lights(), rec.p);
             let p = MixturePDF::new(light_pdf, pdf_ptr.unwrap());
+            // let p = pdf_ptr.unwrap();
 
             let scattered = Ray::new(rec.p, p.generate(), r.time());
             let pdf_val = p.value(scattered.direction());
+            // let pdf_val = 0.1;
 
             emitted
                 + attenuation
                     * rec.mat_ptr.scattering_pdf(r, &rec, &scattered)
-                    * ray_color(&scattered, background, world, lights, depth - 1)
+                    * ray_color(&scattered, background, world.clone(), depth - 1)
                     / pdf_val
         } else {
             emitted
@@ -87,84 +81,81 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut samples_per_pixel = 100;
 
     // World
-    let scene = 6;
+    let scene = std::env::var("SCENE")
+        .ok()
+        .and_then(|x| x.parse::<i32>().ok())
+        .unwrap_or(2);
     let world;
-    let mut lights: Arc<dyn Hittable> = Arc::new(HittableList::new());
 
     // Camera
-    let mut look_from = Point3::new(13.0, 2.0, 3.0);
+    let mut look_from = point!(13.0, 2.0, 3.0);
     let mut look_at = Point3::ORIGIN;
-    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let vup = vec3!(0.0, 1.0, 0.0);
     let focus_dist = 10.0;
     let mut aperture = 0.0;
     let mut vfov = 20.0;
-    let mut background = Color::new(0.70, 0.80, 1.00);
+    let mut background = rgb!(0.70, 0.80, 1.00);
 
     match scene {
         1 => {
-            world = random_scene();
+            world = World::random_scene();
+
             aperture = 0.1;
         }
         2 => {
-            world = two_spheres();
+            world = World::two_spheres();
         }
         3 => {
-            world = two_perlin_spheres();
+            world = World::two_perlin_spheres();
         }
         4 => {
-            world = earth();
+            world = World::earth();
         }
         5 => {
-            let (w, l) = simple_light();
-            world = w;
-            lights = l;
+            world = World::simple_light();
 
             background = Color::BLACK;
             look_from = point!(26.0, 3.0, 6.0);
             look_at = point!(0.0, 2.0, 0.0);
-            samples_per_pixel = 400;
+            // samples_per_pixel = 400;
         }
         6 => {
-            let (w, l) = cornell_box();
-            world = w;
-            lights = l;
+            world = World::cornell_box();
 
             aspect_ratio = 1.0;
             image_height = 600;
-            samples_per_pixel = 1000;
+            samples_per_pixel = 10;
             background = Color::BLACK;
             look_from = point!(278.0, 278.0, -800.0);
             look_at = point!(278.0, 278.0, 0.0);
             vfov = 40.0;
         }
         7 => {
-            let (w, l) = cornell_smoke();
-            world = w;
-            lights = l;
+            world = World::cornell_smoke();
 
             aspect_ratio = 1.0;
             image_height = 600;
-            samples_per_pixel = 1000;
+            // samples_per_pixel = 1000;
             background = Color::BLACK;
-            look_from = Point3::new(278.0, 278.0, -800.0);
-            look_at = Point3::new(278.0, 278.0, 0.0);
+            look_from = point!(278.0, 278.0, -800.0);
+            look_at = point!(278.0, 278.0, 0.0);
             vfov = 40.0;
         }
         _ => {
-            let (w, l) = final_scene();
-            world = w;
-            lights = l;
+            world = World::final_scene();
 
             aspect_ratio = 1.0;
             image_height = 800;
             // samples_per_pixel = 10_000;
             samples_per_pixel = 10;
             background = Color::BLACK;
-            look_from = Point3::new(478.0, 278.0, -600.0);
-            look_at = Point3::new(278.0, 278.0, 0.0);
+            look_from = point!(478.0, 278.0, -600.0);
+            look_at = point!(278.0, 278.0, 0.0);
             vfov = 40.0;
         }
     };
+
+    let world = Arc::new(world);
 
     let image_width = (image_height as f64 * aspect_ratio) as u32;
 
@@ -199,7 +190,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let v = (j as f64 + rng.gen::<f64>()) / (image_height - 1) as f64;
 
                         let r = cam.get_ray(u, v);
-                        pixel_color += ray_color(&r, background, &world, lights.clone(), MAX_DEPTH);
+                        pixel_color += ray_color(&r, background, world.clone(), MAX_DEPTH);
                     }
 
                     let mut buffer = String::new();

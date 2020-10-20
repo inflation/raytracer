@@ -60,4 +60,8 @@ impl Hittable for ConstantMedium {
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
         self.boundary.bounding_box(t0, t1)
     }
+
+    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
+        0.0
+    }
 }

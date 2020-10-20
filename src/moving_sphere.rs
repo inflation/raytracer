@@ -98,4 +98,8 @@ impl Hittable for MovingSphere {
 
         Some(surrounding_box(box0, box1))
     }
+
+    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
+        0.0
+    }
 }

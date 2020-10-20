@@ -95,4 +95,8 @@ impl Hittable for BVHNode {
     fn bounding_box(&self, _t0: f64, _t1: f64) -> Option<AABB> {
         Some(self.bbox)
     }
+
+    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
+        0.0
+    }
 }

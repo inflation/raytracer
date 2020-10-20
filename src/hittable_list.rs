@@ -59,6 +59,11 @@ impl Hittable for HittableList {
 
     fn random(&self, o: Vec3) -> Vec3 {
         let size = self.objects.len();
+
+        if size == 0 {
+            return Point3::ORIGIN;
+        }
+
         let index = rand::thread_rng().gen_range(0, size);
         self.objects[index].random(o)
     }

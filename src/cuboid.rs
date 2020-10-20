@@ -81,4 +81,8 @@ impl Hittable for Cuboid {
     fn bounding_box(&self, _: f64, _: f64) -> Option<AABB> {
         Some(AABB::new(self.box_min, self.box_max))
     }
+
+    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
+        0.0
+    }
 }

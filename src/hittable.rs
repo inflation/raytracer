@@ -49,12 +49,10 @@ impl HitRecord {
 pub trait Hittable: Sync + Send + Debug {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB>;
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f64;
 
-    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
-        0.0
-    }
     fn random(&self, _o: Vec3) -> Vec3 {
-        Vec3::new(1.0, 0.0, 0.0)
+        vec3!(1.0, 0.0, 0.0)
     }
 }
 
@@ -93,7 +91,19 @@ impl Hittable for Translate {
             None
         }
     }
+
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+        if self
+            .hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY)
+            .is_some()
+        {
+            self.inner.pdf_value(o, v)
+        } else {
+            0.0
+        }
+    }
 }
+
 #[derive(Debug)]
 pub struct RotateY {
     inner: Arc<dyn Hittable>,
@@ -182,6 +192,17 @@ impl Hittable for RotateY {
     fn bounding_box(&self, _: f64, _: f64) -> Option<AABB> {
         self.bbox
     }
+
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+        if self
+            .hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY)
+            .is_some()
+        {
+            self.inner.pdf_value(o, v)
+        } else {
+            0.0
+        }
+    }
 }
 
 // Flip face
@@ -210,5 +231,9 @@ impl Hittable for FlipFace {
 
     fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
         self.inner.pdf_value(o, v)
+    }
+
+    fn random(&self, o: Vec3) -> Vec3 {
+        self.inner.random(o)
     }
 }

@@ -1,6 +1,8 @@
 use crate::prelude::*;
 
-use std::{fmt::Debug, sync::Arc};
+use crate::hittable_list::*;
+
+use std::fmt::Debug;
 
 pub trait PDF: Debug {
     fn value(&self, direction: Vec3) -> f64;
@@ -14,8 +16,8 @@ pub struct CosinePDF {
 }
 
 impl CosinePDF {
-    pub fn new(w: Vec3) -> Arc<Self> {
-        Arc::new(Self {
+    pub fn new(w: Vec3) -> Box<Self> {
+        Box::new(Self {
             uvw: ONB::from_w(w),
         })
     }
@@ -33,18 +35,18 @@ impl PDF for CosinePDF {
 }
 
 #[derive(Debug)]
-pub struct HittablePDF {
+pub struct HittablePDF<'a> {
     o: Point3,
-    ptr: Arc<dyn Hittable>,
+    ptr: &'a HittableList,
 }
 
-impl HittablePDF {
-    pub fn new(ptr: Arc<dyn Hittable>, o: Point3) -> Arc<Self> {
-        Arc::new(Self { o, ptr })
+impl<'a> HittablePDF<'a> {
+    pub fn new(ptr: &'a HittableList, o: Point3) -> Box<Self> {
+        Box::new(Self { o, ptr })
     }
 }
 
-impl PDF for HittablePDF {
+impl PDF for HittablePDF<'_> {
     fn value(&self, direction: Vec3) -> f64 {
         self.ptr.pdf_value(self.o, direction)
     }
@@ -54,17 +56,17 @@ impl PDF for HittablePDF {
 }
 
 #[derive(Debug)]
-pub struct MixturePDF {
-    p: [Arc<dyn PDF>; 2],
+pub struct MixturePDF<'a> {
+    p: [Box<dyn PDF + 'a>; 2],
 }
 
-impl MixturePDF {
-    pub fn new(p1: Arc<dyn PDF>, p2: Arc<dyn PDF>) -> Self {
+impl<'a> MixturePDF<'a> {
+    pub fn new(p1: Box<dyn PDF + 'a>, p2: Box<dyn PDF + 'a>) -> Self {
         Self { p: [p1, p2] }
     }
 }
 
-impl PDF for MixturePDF {
+impl PDF for MixturePDF<'_> {
     fn value(&self, direction: Vec3) -> f64 {
         0.5 * self.p[0].value(direction) + 0.5 * self.p[1].value(direction)
     }
