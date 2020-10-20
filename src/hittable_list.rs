@@ -35,12 +35,9 @@ impl Hittable for HittableList {
     }
 
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
-        let first = self.objects.first().and_then(|x| x.bounding_box(t0, t1));
-        if first.is_none() {
-            return None;
-        }
+        let first = self.objects.first().and_then(|x| x.bounding_box(t0, t1))?;
 
-        self.objects.iter().skip(1).fold(first, |acc, x| {
+        self.objects.iter().skip(1).fold(Some(first), |acc, x| {
             if let Some(bounding_box) = x.bounding_box(t0, t1) {
                 Some(surrounding_box(acc.unwrap(), bounding_box))
             } else {

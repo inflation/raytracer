@@ -19,17 +19,18 @@ impl MovingSphere {
         time1: f64,
         radius: f64,
         mat_ptr: Arc<dyn Material>,
-    ) -> Self {
-        Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             center0,
             center1,
             time0,
             time1,
             radius,
             mat_ptr,
-        }
+        })
     }
 
+    #[inline]
     pub fn center(&self, time: f64) -> Point3 {
         self.center0
             + ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)

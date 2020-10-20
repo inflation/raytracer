@@ -1,4 +1,3 @@
-use std::default::Default;
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub};
 
 use rand::Rng;
@@ -22,6 +21,7 @@ impl Vec3 {
         Self { e: rng.gen() }
     }
 
+    #[inline]
     pub fn random_with_bound(rng: &mut impl rand::Rng, min: f64, max: f64) -> Self {
         Self::new(
             rng.gen_range(min, max),
@@ -30,28 +30,30 @@ impl Vec3 {
         )
     }
 
+    #[inline]
     pub fn x(&self) -> f64 {
         self.e[0]
     }
+    #[inline]
     pub fn y(&self) -> f64 {
         self.e[1]
     }
+    #[inline]
     pub fn z(&self) -> f64 {
         self.e[2]
     }
 
+    #[inline]
     pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
+    #[inline]
     pub fn length_squared(&self) -> f64 {
         self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2]
     }
-}
 
-impl Default for Vec3 {
-    fn default() -> Self {
-        Vec3::new(0.0, 0.0, 0.0)
-    }
+    pub const ORIGIN: Self = Self { e: [0.0, 0.0, 0.0] };
+    pub const BLACK: Self = Self::ORIGIN;
 }
 
 impl Neg for Vec3 {

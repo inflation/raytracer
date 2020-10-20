@@ -9,12 +9,12 @@ pub struct ConstantMedium {
 }
 
 impl ConstantMedium {
-    pub fn new(boundary: Arc<dyn Hittable>, d: f64, c: Color) -> Self {
-        Self {
+    pub fn new(boundary: Arc<dyn Hittable>, d: f64, c: Color) -> Arc<Self> {
+        Arc::new(Self {
             boundary,
             phase_function: Arc::new(Isotropic::from_color(c)),
             neg_inv_density: -1.0 / d,
-        }
+        })
     }
 }
 

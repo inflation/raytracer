@@ -14,15 +14,22 @@ pub struct XYRect {
 }
 
 impl XYRect {
-    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, mat_ptr: Arc<dyn Material>) -> Self {
-        Self {
+    pub fn new(
+        x0: f64,
+        x1: f64,
+        y0: f64,
+        y1: f64,
+        k: f64,
+        mat_ptr: Arc<dyn Material>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
             mat_ptr,
             x0,
             x1,
             y0,
             y1,
             k,
-        }
+        })
     }
 }
 
@@ -73,15 +80,22 @@ pub struct XZRect {
 }
 
 impl XZRect {
-    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, mat_ptr: Arc<dyn Material>) -> Self {
-        Self {
+    pub fn new(
+        x0: f64,
+        x1: f64,
+        z0: f64,
+        z1: f64,
+        k: f64,
+        mat_ptr: Arc<dyn Material>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
             mat_ptr,
             x0,
             x1,
             z0,
             z1,
             k,
-        }
+        })
     }
 }
 
@@ -153,15 +167,22 @@ pub struct YZRect {
 }
 
 impl YZRect {
-    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, mat_ptr: Arc<dyn Material>) -> Self {
-        Self {
+    pub fn new(
+        y0: f64,
+        y1: f64,
+        z0: f64,
+        z1: f64,
+        k: f64,
+        mat_ptr: Arc<dyn Material>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
             mat_ptr,
             y0,
             y1,
             z0,
             z1,
             k,
-        }
+        })
     }
 }
 

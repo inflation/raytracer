@@ -20,7 +20,7 @@ impl BVHNode {
         end: usize,
         time0: f64,
         time1: f64,
-    ) -> Self {
+    ) -> Arc<Self> {
         let axis = rand::thread_rng().gen_range(0, 3);
         let object_span = end - start;
         let left: Arc<dyn Hittable>;
@@ -46,8 +46,8 @@ impl BVHNode {
             _ => {
                 objects[start..end].sort_unstable_by(|x, y| Self::compare(axis, x, y));
                 let mid = start + object_span / 2;
-                left = BVHNode::new(objects, start, mid, time0, time1).into_arc();
-                right = BVHNode::new(objects, mid, end, time0, time1).into_arc();
+                left = BVHNode::new(objects, start, mid, time0, time1);
+                right = BVHNode::new(objects, mid, end, time0, time1);
             }
         }
 
@@ -59,10 +59,10 @@ impl BVHNode {
 
         bbox = surrounding_box(box_left.unwrap(), box_right.unwrap());
 
-        Self { left, right, bbox }
+        Arc::new(Self { left, right, bbox })
     }
 
-    pub fn new_with_list(mut list: HittableList, time0: f64, time1: f64) -> Self {
+    pub fn new_with_list(mut list: HittableList, time0: f64, time1: f64) -> Arc<Self> {
         let length = list.objects.len();
         Self::new(&mut list.objects, 0, length, time0, time1)
     }

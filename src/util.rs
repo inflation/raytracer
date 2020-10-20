@@ -1,11 +1,21 @@
-use std::{ops::Index, sync::Arc};
+use std::ops::Index;
 
 use crate::vec3::*;
 
-pub trait IntoArc: Sized {
-    fn into_arc(self) -> Arc<Self> {
-        Arc::new(self)
-    }
+macro_rules! point {
+    ($x:literal, $y:literal, $z:literal) => {
+        Vec3::new($x, $y, $z)
+    };
+}
+macro_rules! rgb {
+    ($x:literal, $y:literal, $z:literal) => {
+        Vec3::new($x, $y, $z)
+    };
+}
+macro_rules! vec3 {
+    ($x:literal, $y:literal, $z:literal) => {
+        Vec3::new($x, $y, $z)
+    };
 }
 
 #[inline]

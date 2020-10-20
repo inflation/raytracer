@@ -12,7 +12,7 @@ pub trait Material: Sync + Send + Debug {
         0.0
     }
     fn emitted(&self, _rec: &HitRecord) -> Color {
-        Color::default()
+        Color::BLACK
     }
 }
 
@@ -22,27 +22,23 @@ pub struct ScatterRecord {
     pub pdf_ptr: Option<Arc<dyn PDF>>,
 }
 
-#[derive(Debug)]
-pub struct NoMaterial {}
-impl IntoArc for NoMaterial {}
-impl Material for NoMaterial {}
-
 // Lambertian
 #[derive(Debug)]
 pub struct Lambertian {
     pub albedo: Arc<dyn Texture>,
 }
-impl IntoArc for Lambertian {}
 
 impl Lambertian {
-    pub fn new(r: f64, g: f64, b: f64) -> Self {
+    pub fn new(albedo: Arc<dyn Texture>) -> Arc<Self> {
+        Arc::new(Self { albedo })
+    }
+
+    pub fn new_rgb(r: f64, g: f64, b: f64) -> Arc<Self> {
         Self::from_color(Color::new(r, g, b))
     }
 
-    pub fn from_color(color: Color) -> Self {
-        Self {
-            albedo: Arc::new(SolidColor { color_value: color }),
-        }
+    pub fn from_color(color: Color) -> Arc<Self> {
+        Self::new(Arc::new(SolidColor { color_value: color }))
     }
 }
 
@@ -51,7 +47,7 @@ impl Material for Lambertian {
         Some(ScatterRecord {
             specular_ray: None,
             attenuation: self.albedo.value(rec.u, rec.v, rec.p),
-            pdf_ptr: Some(CosinePDF::new(rec.normal).into_arc()),
+            pdf_ptr: Some(CosinePDF::new(rec.normal)),
         })
     }
 
@@ -67,14 +63,14 @@ pub struct Metal {
     pub albedo: Color,
     pub fuzz: f64,
 }
-impl IntoArc for Metal {}
 
 impl Metal {
-    pub fn new(r: f64, g: f64, b: f64, fuzz: f64) -> Self {
-        Self {
-            albedo: Color::new(r, g, b),
-            fuzz,
-        }
+    pub fn new(albedo: Color, fuzz: f64) -> Arc<Self> {
+        Arc::new(Self { albedo, fuzz })
+    }
+
+    pub fn new_rgbf(r: f64, g: f64, b: f64, fuzz: f64) -> Arc<Self> {
+        Self::new(Color::new(r, g, b), fuzz)
     }
 }
 
@@ -98,14 +94,14 @@ impl Material for Metal {
 pub struct Dielectric {
     pub ref_idx: f64,
 }
-impl IntoArc for Dielectric {}
 
 impl Dielectric {
-    pub fn new(ref_idx: f64) -> Self {
-        Self { ref_idx }
+    pub fn new(ref_idx: f64) -> Arc<Self> {
+        Arc::new(Self { ref_idx })
     }
 }
 
+#[inline]
 fn schlick(cosine: f64, ref_idx: f64) -> f64 {
     let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
     r0 = r0 * r0;
@@ -150,21 +146,20 @@ impl Material for Dielectric {
 pub struct DiffuseLight {
     pub emit: Arc<dyn Texture>,
 }
-impl IntoArc for DiffuseLight {}
 
 impl DiffuseLight {
-    pub fn new(r: f64, g: f64, b: f64) -> Self {
+    pub fn new_rgb(r: f64, g: f64, b: f64) -> Arc<Self> {
         Self::from_color(Color::new(r, g, b))
     }
 
-    pub fn from_color(color: Color) -> Self {
-        Self {
+    pub fn from_color(color: Color) -> Arc<Self> {
+        Arc::new(Self {
             emit: Arc::new(SolidColor { color_value: color }),
-        }
+        })
     }
 
-    pub fn white(s: f64) -> Self {
-        Self::new(s, s, s)
+    pub fn white(s: f64) -> Arc<Self> {
+        Self::new_rgb(s, s, s)
     }
 }
 
@@ -173,7 +168,7 @@ impl Material for DiffuseLight {
         if rec.front_face {
             self.emit.value(rec.u, rec.v, rec.p)
         } else {
-            Color::default()
+            Color::BLACK
         }
     }
 }
@@ -183,7 +178,6 @@ impl Material for DiffuseLight {
 pub struct Isotropic {
     pub albedo: Arc<dyn Texture>,
 }
-impl IntoArc for Isotropic {}
 
 impl Isotropic {
     pub fn from_color(color: Color) -> Self {

@@ -11,65 +11,65 @@ pub struct Cuboid {
 }
 
 impl Cuboid {
-    pub fn new(p0: Point3, p1: Point3, ptr: Arc<dyn Material>) -> Self {
+    pub fn new(p0: Point3, p1: Point3, ptr: Arc<dyn Material>) -> Arc<Self> {
         let mut sides = HittableList::new();
 
-        sides.add(Arc::new(XYRect::new(
+        sides.add(XYRect::new(
             p0.x(),
             p1.x(),
             p0.y(),
             p1.y(),
             p1.z(),
             ptr.clone(),
-        )));
-        sides.add(Arc::new(XYRect::new(
+        ));
+        sides.add(XYRect::new(
             p0.x(),
             p1.x(),
             p0.y(),
             p1.y(),
             p0.z(),
             ptr.clone(),
-        )));
+        ));
 
-        sides.add(Arc::new(XZRect::new(
+        sides.add(XZRect::new(
             p0.x(),
             p1.x(),
             p0.z(),
             p1.z(),
             p1.y(),
             ptr.clone(),
-        )));
-        sides.add(Arc::new(XZRect::new(
+        ));
+        sides.add(XZRect::new(
             p0.x(),
             p1.x(),
             p0.z(),
             p1.z(),
             p0.y(),
             ptr.clone(),
-        )));
+        ));
 
-        sides.add(Arc::new(YZRect::new(
+        sides.add(YZRect::new(
             p0.y(),
             p1.y(),
             p0.z(),
             p1.z(),
             p1.x(),
             ptr.clone(),
-        )));
-        sides.add(Arc::new(YZRect::new(
+        ));
+        sides.add(YZRect::new(
             p0.y(),
             p1.y(),
             p0.z(),
             p1.z(),
             p0.x(),
             ptr.clone(),
-        )));
+        ));
 
-        Self {
+        Arc::new(Self {
             box_min: p0,
             box_max: p1,
             sides,
-        }
+        })
     }
 }
 

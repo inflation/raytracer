@@ -57,19 +57,6 @@ pub trait Hittable: Sync + Send + Debug {
         Vec3::new(1.0, 0.0, 0.0)
     }
 }
-impl<T: Hittable> IntoArc for T {}
-
-#[derive(Debug)]
-pub struct NoObject {}
-impl Hittable for NoObject {
-    fn hit(&self, _: &Ray, _: f64, _: f64) -> Option<HitRecord> {
-        None
-    }
-
-    fn bounding_box(&self, _: f64, _: f64) -> Option<AABB> {
-        None
-    }
-}
 
 #[derive(Debug)]
 pub struct Translate {
@@ -78,8 +65,8 @@ pub struct Translate {
 }
 
 impl Translate {
-    pub fn new(inner: Arc<dyn Hittable>, offset: Vec3) -> Self {
-        Self { inner, offset }
+    pub fn new(inner: Arc<dyn Hittable>, offset: Vec3) -> Arc<Self> {
+        Arc::new(Self { inner, offset })
     }
 }
 
@@ -116,11 +103,11 @@ pub struct RotateY {
 }
 
 impl RotateY {
-    pub fn new(inner: Arc<dyn Hittable>, angle: f64) -> Self {
+    pub fn new(inner: Arc<dyn Hittable>, angle: f64) -> Arc<Self> {
         let radian = angle.to_radians();
         let sin_theta = radian.sin();
         let cos_theta = radian.cos();
-        let bbox = inner.bounding_box(0.0, 1.0).and_then(|bbox| {
+        let bbox = inner.bounding_box(0.0, 1.0).map(|bbox| {
             let mut min = Vec3 {
                 e: [f64::INFINITY; 3],
             };
@@ -147,15 +134,15 @@ impl RotateY {
                 }
             }
 
-            Some(AABB::new(min, max))
+            AABB::new(min, max)
         });
 
-        Self {
+        Arc::new(Self {
             inner,
             sin_theta,
             cos_theta,
             bbox,
-        }
+        })
     }
 }
 
@@ -204,22 +191,24 @@ pub struct FlipFace {
 }
 
 impl FlipFace {
-    pub fn new(inner: Arc<dyn Hittable>) -> Self {
-        Self { inner }
+    pub fn new(inner: Arc<dyn Hittable>) -> Arc<Self> {
+        Arc::new(Self { inner })
     }
 }
 
 impl Hittable for FlipFace {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        self.inner.hit(r, t_min, t_max).and_then(|rec| {
-            Some(HitRecord {
-                front_face: !rec.front_face,
-                ..rec
-            })
+        self.inner.hit(r, t_min, t_max).map(|rec| HitRecord {
+            front_face: !rec.front_face,
+            ..rec
         })
     }
 
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
         self.inner.bounding_box(t0, t1)
+    }
+
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+        self.inner.pdf_value(o, v)
     }
 }

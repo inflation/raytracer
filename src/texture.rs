@@ -19,7 +19,6 @@ impl Texture for SolidColor {
         self.color_value
     }
 }
-impl IntoArc for SolidColor {}
 
 #[derive(Debug)]
 pub struct CheckerTexture {
@@ -28,11 +27,11 @@ pub struct CheckerTexture {
 }
 
 impl CheckerTexture {
-    pub fn new(c1: Color, c2: Color) -> Self {
-        Self {
+    pub fn new(c1: Color, c2: Color) -> Arc<Self> {
+        Arc::new(Self {
             even: Arc::new(SolidColor { color_value: c1 }),
             odd: Arc::new(SolidColor { color_value: c2 }),
-        }
+        })
     }
 }
 
@@ -47,8 +46,6 @@ impl Texture for CheckerTexture {
     }
 }
 
-impl IntoArc for CheckerTexture {}
-
 #[derive(Debug)]
 pub struct NoiseTexture {
     noise: Perlin,
@@ -56,36 +53,35 @@ pub struct NoiseTexture {
 }
 
 impl NoiseTexture {
-    pub fn new(scale: f64) -> Self {
-        Self {
+    pub fn new(scale: f64) -> Arc<Self> {
+        Arc::new(Self {
             noise: Perlin::new(),
             scale,
-        }
+        })
     }
 }
 
 impl Texture for NoiseTexture {
+    #[inline]
     fn value(&self, _u: f64, _v: f64, p: Point3) -> Color {
-        Color::new(1.0, 1.0, 1.0)
+        rgb!(1.0, 1.0, 1.0)
             * 0.5
             * (1.0 + (self.scale * p.z() + 10.0 * self.noise.turb(p, 7)).sin())
     }
 }
-
-impl IntoArc for NoiseTexture {}
 
 pub struct ImageTexture {
     image: DynamicImage,
 }
 
 impl ImageTexture {
-    pub fn new(filename: impl AsRef<str>) -> Self {
+    pub fn new(filename: impl AsRef<str>) -> Arc<Self> {
         let filename = filename.as_ref();
 
         let image = image::open(filename)
-            .expect(format!("ERROR: Could not load texture image file: {}", filename).as_str());
+            .unwrap_or_else(|_| panic!("ERROR: Could not load texture image file: {}", filename));
 
-        Self { image }
+        Arc::new(Self { image })
     }
 }
 
@@ -110,7 +106,7 @@ impl Texture for ImageTexture {
             .image
             .get_pixel(i, j)
             .channels()
-            .into_iter()
+            .iter()
             .map(|&x| color_scale * x as f64)
             .collect();
 
@@ -123,5 +119,3 @@ impl Debug for ImageTexture {
         writeln!(f, "Image")
     }
 }
-
-impl IntoArc for ImageTexture {}

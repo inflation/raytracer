@@ -9,12 +9,12 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Point3, radius: f64, mat_ptr: Arc<dyn Material>) -> Self {
-        Self {
+    pub fn new(center: Point3, radius: f64, mat_ptr: Arc<dyn Material>) -> Arc<Self> {
+        Arc::new(Self {
             center,
             radius,
             mat_ptr,
-        }
+        })
     }
 
     pub fn get_uv(p: Vec3) -> (f64, f64) {
@@ -83,7 +83,10 @@ impl Hittable for Sphere {
     }
 
     fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
-        if let Some(_) = self.hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY) {
+        if self
+            .hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY)
+            .is_some()
+        {
             let cos_theta_max =
                 (1.0 - self.radius * self.radius / (self.center - o).length_squared()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);

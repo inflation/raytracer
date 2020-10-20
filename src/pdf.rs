@@ -13,13 +13,11 @@ pub struct CosinePDF {
     uvw: ONB,
 }
 
-impl IntoArc for CosinePDF {}
-
 impl CosinePDF {
-    pub fn new(w: Vec3) -> Self {
-        Self {
+    pub fn new(w: Vec3) -> Arc<Self> {
+        Arc::new(Self {
             uvw: ONB::from_w(w),
-        }
+        })
     }
 }
 
@@ -41,11 +39,10 @@ pub struct HittablePDF {
 }
 
 impl HittablePDF {
-    pub fn new(ptr: Arc<dyn Hittable>, o: Point3) -> Self {
-        Self { o, ptr }
+    pub fn new(ptr: Arc<dyn Hittable>, o: Point3) -> Arc<Self> {
+        Arc::new(Self { o, ptr })
     }
 }
-impl IntoArc for HittablePDF {}
 
 impl PDF for HittablePDF {
     fn value(&self, direction: Vec3) -> f64 {
@@ -66,7 +63,6 @@ impl MixturePDF {
         Self { p: [p1, p2] }
     }
 }
-impl IntoArc for MixturePDF {}
 
 impl PDF for MixturePDF {
     fn value(&self, direction: Vec3) -> f64 {

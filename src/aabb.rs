@@ -22,8 +22,8 @@ impl AABB {
 impl std::default::Default for AABB {
     fn default() -> Self {
         Self {
-            min: Point3::default(),
-            max: Point3::default(),
+            min: Point3::ORIGIN,
+            max: Point3::ORIGIN,
         }
     }
 }
