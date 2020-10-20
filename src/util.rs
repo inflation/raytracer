@@ -19,7 +19,7 @@ macro_rules! vec3 {
 }
 
 #[inline]
-pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
+pub fn clamp(x: f32, min: f32, max: f32) -> f32 {
     x.max(min).min(max)
 }
 
@@ -44,14 +44,14 @@ impl ONB {
     }
 
     pub fn from_w(n: Vec3) -> Self {
-        let w = unit_vector(n);
+        let w = n.unit_vector();
         let a = if w.x().abs() > 0.9 {
             Vec3::new(0.0, 1.0, 0.0)
         } else {
             Vec3::new(1.0, 0.0, 0.0)
         };
-        let v = unit_vector(cross(w, a));
-        let u = cross(w, v);
+        let v = w.cross(a).unit_vector();
+        let u = w.cross(v);
 
         Self { axis: [u, v, w] }
     }

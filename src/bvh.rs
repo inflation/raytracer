@@ -18,8 +18,8 @@ impl BVHNode {
         objects: &mut Vec<Arc<dyn Hittable>>,
         start: usize,
         end: usize,
-        time0: f64,
-        time1: f64,
+        time0: f32,
+        time1: f32,
     ) -> Arc<Self> {
         let axis = rand::thread_rng().gen_range(0, 3);
         let object_span = end - start;
@@ -62,7 +62,7 @@ impl BVHNode {
         Arc::new(Self { left, right, bbox })
     }
 
-    pub fn new_with_list(mut list: HittableList, time0: f64, time1: f64) -> Arc<Self> {
+    pub fn new_with_list(mut list: HittableList, time0: f32, time1: f32) -> Arc<Self> {
         let length = list.objects.len();
         Self::new(&mut list.objects, 0, length, time0, time1)
     }
@@ -74,14 +74,15 @@ impl BVHNode {
             .and(box_b)
             .expect("No bounding box in BVHNode constructor");
 
-        box_a.unwrap().min().e[axis]
-            .partial_cmp(&box_b.unwrap().min().e[axis])
-            .unwrap()
+        // TODO: SIMD
+        let a = box_a.unwrap().min().to_array()[axis];
+        let b = box_b.unwrap().min().to_array()[axis];
+        a.partial_cmp(&b).unwrap()
     }
 }
 
 impl Hittable for BVHNode {
-    fn hit(&self, r: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, r: &crate::ray::Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         if !self.bbox.hit(r, t_min, t_max) {
             None
         } else {
@@ -92,11 +93,11 @@ impl Hittable for BVHNode {
         }
     }
 
-    fn bounding_box(&self, _t0: f64, _t1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
         Some(self.bbox)
     }
 
-    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
+    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f32 {
         0.0
     }
 }

@@ -5,8 +5,8 @@ use crate::hittable_list::*;
 use std::fmt::Debug;
 
 pub trait PDF: Debug {
-    fn value(&self, direction: Vec3) -> f64;
-    fn generate(&self) -> Vec3;
+    fn value(&self, direction: Vec3) -> f32;
+    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3;
 }
 
 #[derive(Debug)]
@@ -24,13 +24,13 @@ impl CosinePDF {
 }
 
 impl PDF for CosinePDF {
-    fn value(&self, direction: Vec3) -> f64 {
-        let cos = dot(unit_vector(direction), self.uvw.w());
+    fn value(&self, direction: Vec3) -> f32 {
+        let cos = direction.unit_vector().dot(self.uvw.w());
         (cos / PI).max(0.0)
     }
 
-    fn generate(&self) -> Vec3 {
-        self.uvw.local(random_cosine_direction())
+    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3 {
+        self.uvw.local(random_cosine_direction(rng))
     }
 }
 
@@ -47,11 +47,11 @@ impl<'a> HittablePDF<'a> {
 }
 
 impl PDF for HittablePDF<'_> {
-    fn value(&self, direction: Vec3) -> f64 {
+    fn value(&self, direction: Vec3) -> f32 {
         self.ptr.pdf_value(self.o, direction)
     }
-    fn generate(&self) -> Vec3 {
-        self.ptr.random(self.o)
+    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3 {
+        self.ptr.random(rng, self.o)
     }
 }
 
@@ -67,14 +67,14 @@ impl<'a> MixturePDF<'a> {
 }
 
 impl PDF for MixturePDF<'_> {
-    fn value(&self, direction: Vec3) -> f64 {
+    fn value(&self, direction: Vec3) -> f32 {
         0.5 * self.p[0].value(direction) + 0.5 * self.p[1].value(direction)
     }
-    fn generate(&self) -> Vec3 {
+    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3 {
         if rand::random::<f32>() < 0.5 {
-            self.p[0].generate()
+            self.p[0].generate(rng)
         } else {
-            self.p[1].generate()
+            self.p[1].generate(rng)
         }
     }
 }

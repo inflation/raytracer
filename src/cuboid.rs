@@ -74,15 +74,15 @@ impl Cuboid {
 }
 
 impl Hittable for Cuboid {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         self.sides.hit(r, t_min, t_max)
     }
 
-    fn bounding_box(&self, _: f64, _: f64) -> Option<AABB> {
+    fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
         Some(AABB::new(self.box_min, self.box_max))
     }
 
-    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f64 {
+    fn pdf_value(&self, _o: Point3, _v: Vec3) -> f32 {
         0.0
     }
 }

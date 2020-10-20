@@ -44,11 +44,11 @@ impl World {
 
         for a in -11..11 {
             for b in -11..11 {
-                let choose_mat: f64 = rng.gen();
+                let choose_mat: f32 = rng.gen();
                 let center = Point3::new(
-                    a as f64 + 0.9 * rng.gen::<f64>(),
+                    a as f32 + 0.9 * rng.gen::<f32>(),
                     0.2,
-                    b as f64 + 0.9 * rng.gen::<f64>(),
+                    b as f32 + 0.9 * rng.gen::<f32>(),
                 );
 
                 if (center - point!(4.0, 0.2, 0.0)).length() > 0.9 {
@@ -154,7 +154,7 @@ impl World {
 
         let earth_texture = ImageTexture::new("assets/earthmap.jpg");
         let earth_surface = Lambertian::new(earth_texture);
-        let globe = Sphere::new(Point3::ORIGIN, 2.0, earth_surface);
+        let globe = Sphere::new(Point3::origin(), 2.0, earth_surface);
         add_lights(&mut world, &mut lights, globe);
 
         Self { world, lights }
@@ -205,10 +205,10 @@ impl World {
         // Boxes
         let glass = Dielectric::new(1.5);
         let mut box1: Arc<dyn Hittable> =
-            Cuboid::new(Point3::ORIGIN, point!(165.0, 330.0, 165.0), white);
+            Cuboid::new(Point3::origin(), point!(165.0, 330.0, 165.0), white);
         // let aluminum = Metal::new_rgbf(0.8, 0.85, 0.88, 0.0);
         // let mut box1: Arc<dyn Hittable> = Cuboid::new(
-        //     Point3::ORIGION,
+        //     Point3::origin(),
         //     point!(165.0, 330.0, 165.0),
         //     aluminuium,
         // )
@@ -217,7 +217,7 @@ impl World {
         world.add(box1);
 
         // let mut box2: Arc<dyn Hittable> =
-        //     Cuboid::new(Point3::ORIGION, point!(165.0, 165.0, 165.0), white);
+        //     Cuboid::new(Point3::origin(), point!(165.0, 165.0, 165.0), white);
         // box2 = RotateY::new(box2, -18.0);
         // box2 = Translate::new(box2, vec3!(130.0, 0.0, 65.0));
         // world.add(box2);
@@ -250,15 +250,15 @@ impl World {
 
         // Boxes
         let mut box1: Arc<dyn Hittable> =
-            Cuboid::new(Point3::ORIGIN, point!(165.0, 330.0, 165.0), white.clone());
+            Cuboid::new(Point3::origin(), point!(165.0, 330.0, 165.0), white.clone());
         box1 = RotateY::new(box1, 15.0);
         box1 = Translate::new(box1, Vec3::new(265.0, 0.0, 295.0));
         let mut box2: Arc<dyn Hittable> =
-            Cuboid::new(Point3::ORIGIN, point!(165.0, 165.0, 165.0), white);
+            Cuboid::new(Point3::origin(), point!(165.0, 165.0, 165.0), white);
         box2 = RotateY::new(box2, -18.0);
         box2 = Translate::new(box2, Vec3::new(130.0, 0.0, 65.0));
 
-        world.add(ConstantMedium::new(box1, 0.01, Color::BLACK));
+        world.add(ConstantMedium::new(box1, 0.01, Color::black()));
         world.add(ConstantMedium::new(box2, 0.01, rgb!(1.0, 1.0, 1.0)));
 
         Self { world, lights }
@@ -276,8 +276,8 @@ impl World {
         for i in 0..boxes_per_side {
             for j in 0..boxes_per_side {
                 let w = 100.0;
-                let x0 = -1000.0 + i as f64 * w;
-                let z0 = -1000.0 + j as f64 * w;
+                let x0 = -1000.0 + i as f32 * w;
+                let z0 = -1000.0 + j as f32 * w;
                 let y0 = 0.0;
                 let x1 = x0 + w;
                 let y1 = rng.gen_range(1.0, 101.0);
@@ -324,7 +324,7 @@ impl World {
             rgb!(0.2, 0.4, 0.9),
         ));
         add_lights(&mut world, &mut lights, boundary);
-        let boundary = Sphere::new(Point3::ORIGIN, 5000.0, Dielectric::new(1.5));
+        let boundary = Sphere::new(Point3::origin(), 5000.0, Dielectric::new(1.5));
         world.add(ConstantMedium::new(boundary, 0.0001, rgb!(1.0, 1.0, 1.0)));
 
         let emat = Lambertian::new(ImageTexture::new("assets/earthmap.jpg"));

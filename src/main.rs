@@ -36,34 +36,40 @@ mod worlds;
 #[global_allocator]
 static GLOBAL: mimallocator::Mimalloc = mimallocator::Mimalloc;
 
-fn ray_color(r: &Ray, background: Color, world: Arc<World>, depth: u32) -> Color {
+fn ray_color(
+    rng: &mut impl Rng,
+    r: &Ray,
+    background: Color,
+    world: Arc<World>,
+    depth: u32,
+) -> Color {
     if depth == 0 {
-        return Color::BLACK;
+        return Color::black();
     }
 
-    if let Some(rec) = world.world().hit(r, 0.001, f64::INFINITY) {
+    if let Some(rec) = world.world().hit(r, 0.001, f32::INFINITY) {
         let emitted = rec.mat_ptr.emitted(&rec);
         if let Some(ScatterRecord {
             specular_ray,
             attenuation,
             pdf_ptr,
-        }) = rec.mat_ptr.scatter(r, &rec)
+        }) = rec.mat_ptr.scatter(rng, r, &rec)
         {
             if let Some(specular) = specular_ray {
-                return attenuation * ray_color(&specular, background, world, depth - 1);
+                return attenuation * ray_color(rng, &specular, background, world, depth - 1);
             }
-            let light_pdf = HittablePDF::new(world.lights(), rec.p);
-            let p = MixturePDF::new(light_pdf, pdf_ptr.unwrap());
-            // let p = pdf_ptr.unwrap();
+            // let light_pdf = HittablePDF::new(world.lights(), rec.p);
+            // let p = MixturePDF::new(light_pdf, pdf_ptr.unwrap());
+            let p = pdf_ptr.unwrap();
 
-            let scattered = Ray::new(rec.p, p.generate(), r.time());
+            let scattered = Ray::new(rec.p, p.generate(rng), r.time());
             let pdf_val = p.value(scattered.direction());
             // let pdf_val = 0.1;
 
             emitted
                 + attenuation
                     * rec.mat_ptr.scattering_pdf(r, &rec, &scattered)
-                    * ray_color(&scattered, background, world.clone(), depth - 1)
+                    * ray_color(rng, &scattered, background, world.clone(), depth - 1)
                     / pdf_val
         } else {
             emitted
@@ -89,7 +95,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Camera
     let mut look_from = point!(13.0, 2.0, 3.0);
-    let mut look_at = Point3::ORIGIN;
+    let mut look_at = Point3::origin();
+
     let vup = vec3!(0.0, 1.0, 0.0);
     let focus_dist = 10.0;
     let mut aperture = 0.0;
@@ -114,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         5 => {
             world = World::simple_light();
 
-            background = Color::BLACK;
+            background = Color::black();
             look_from = point!(26.0, 3.0, 6.0);
             look_at = point!(0.0, 2.0, 0.0);
             // samples_per_pixel = 400;
@@ -125,7 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             aspect_ratio = 1.0;
             image_height = 600;
             samples_per_pixel = 10;
-            background = Color::BLACK;
+            background = Color::black();
             look_from = point!(278.0, 278.0, -800.0);
             look_at = point!(278.0, 278.0, 0.0);
             vfov = 40.0;
@@ -136,7 +143,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             aspect_ratio = 1.0;
             image_height = 600;
             // samples_per_pixel = 1000;
-            background = Color::BLACK;
+            background = Color::black();
             look_from = point!(278.0, 278.0, -800.0);
             look_at = point!(278.0, 278.0, 0.0);
             vfov = 40.0;
@@ -148,7 +155,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             image_height = 800;
             // samples_per_pixel = 10_000;
             samples_per_pixel = 10;
-            background = Color::BLACK;
+            background = Color::black();
             look_from = point!(478.0, 278.0, -600.0);
             look_at = point!(278.0, 278.0, 0.0);
             vfov = 40.0;
@@ -157,7 +164,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let world = Arc::new(world);
 
-    let image_width = (image_height as f64 * aspect_ratio) as u32;
+    let image_width = (image_height as f32 * aspect_ratio) as u32;
 
     let cam = Camera::new(
         look_from,
@@ -182,15 +189,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             (0..image_width)
                 .into_par_iter()
                 .map(|i| {
-                    let mut pixel_color = Color::BLACK;
+                    let mut pixel_color = Color::black();
                     let mut rng = rand::thread_rng();
 
                     for _ in 0..samples_per_pixel {
-                        let u = (i as f64 + rng.gen::<f64>()) / (image_width - 1) as f64;
-                        let v = (j as f64 + rng.gen::<f64>()) / (image_height - 1) as f64;
+                        let u = (i as f32 + rng.gen::<f32>()) / (image_width - 1) as f32;
+                        let v = (j as f32 + rng.gen::<f32>()) / (image_height - 1) as f32;
 
-                        let r = cam.get_ray(u, v);
-                        pixel_color += ray_color(&r, background, world.clone(), MAX_DEPTH);
+                        let r = cam.get_ray(&mut rng, u, v);
+                        pixel_color +=
+                            ray_color(&mut rng, &r, background, world.clone(), MAX_DEPTH);
                     }
 
                     let mut buffer = String::new();

@@ -4,12 +4,12 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct Sphere {
     center: Point3,
-    radius: f64,
+    radius: f32,
     mat_ptr: Arc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Point3, radius: f64, mat_ptr: Arc<dyn Material>) -> Arc<Self> {
+    pub fn new(center: Point3, radius: f32, mat_ptr: Arc<dyn Material>) -> Arc<Self> {
         Arc::new(Self {
             center,
             radius,
@@ -17,7 +17,7 @@ impl Sphere {
         })
     }
 
-    pub fn get_uv(p: Vec3) -> (f64, f64) {
+    pub fn get_uv(p: Vec3) -> (f32, f32) {
         let phi = p.z().atan2(p.x());
         let theta = p.y().asin();
         (1.0 - (phi + PI) / (2.0 * PI), (theta + PI / 2.0) / PI)
@@ -25,10 +25,10 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let oc = r.origin() - self.center;
         let a = r.direction().length_squared();
-        let half_b = dot(oc, r.direction());
+        let half_b = oc.dot(r.direction());
         let c = oc.length_squared() - self.radius * self.radius;
         let discriminant = half_b * half_b - a * c;
 
@@ -73,7 +73,7 @@ impl Hittable for Sphere {
         None
     }
 
-    fn bounding_box(&self, _t0: f64, _t1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
         let radius = self.radius;
         let radius_vec = Vec3::new(radius, radius, radius);
         Some(AABB::new(
@@ -82,9 +82,9 @@ impl Hittable for Sphere {
         ))
     }
 
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
         if self
-            .hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY)
+            .hit(&Ray::new(o, v, 0.0), 0.001, f32::INFINITY)
             .is_some()
         {
             let cos_theta_max =
@@ -97,11 +97,11 @@ impl Hittable for Sphere {
         }
     }
 
-    fn random(&self, o: Vec3) -> Vec3 {
+    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
         let direction = self.center - o;
         let distance_squared = direction.length_squared();
         let uvw = ONB::from_w(direction);
 
-        uvw.local(random_to_sphere(self.radius, distance_squared))
+        uvw.local(random_to_sphere(rng, self.radius, distance_squared))
     }
 }

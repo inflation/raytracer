@@ -1,28 +1,49 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
 
-use rand::Rng;
-pub use std::f64::consts::PI;
+pub use std::f32::consts::PI;
+
+#[cfg(target_arch = "x86")]
+use std::arch::x86::*;
+#[cfg(target_arch = "x86_64")]
+use std::arch::x86_64::*;
+
+#[inline]
+const fn mm_shuffle(z: u32, y: u32, x: u32, w: u32) -> i32 {
+    ((z << 6) | (y << 4) | (x << 2) | w) as i32
+}
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
-    pub e: [f64; 3],
+    e: __m128,
 }
 
 pub type Point3 = Vec3;
 pub type Color = Vec3;
 
 impl Vec3 {
-    pub fn new(e0: f64, e1: f64, e2: f64) -> Self {
-        Self { e: [e0, e1, e2] }
+    #[inline]
+    pub fn new(e0: f32, e1: f32, e2: f32) -> Self {
+        Self {
+            e: unsafe { _mm_set_ps(e0, e1, e2, 0.0) },
+        }
+    }
+    #[inline]
+    pub fn from_scalar(e: f32) -> Self {
+        Self {
+            e: unsafe { _mm_set1_ps(e) },
+        }
+    }
+    #[inline]
+    pub fn from_array(e: [f32; 3]) -> Self {
+        Self::new(e[0], e[1], e[2])
     }
 
     #[inline]
     pub fn random(rng: &mut impl rand::Rng) -> Self {
-        Self { e: rng.gen() }
+        Self::new(rng.gen(), rng.gen(), rng.gen())
     }
-
     #[inline]
-    pub fn random_with_bound(rng: &mut impl rand::Rng, min: f64, max: f64) -> Self {
+    pub fn random_with_bound(rng: &mut impl rand::Rng, min: f32, max: f32) -> Self {
         Self::new(
             rng.gen_range(min, max),
             rng.gen_range(min, max),
@@ -31,48 +52,98 @@ impl Vec3 {
     }
 
     #[inline]
-    pub fn x(&self) -> f64 {
-        self.e[0]
+    pub fn x(&self) -> f32 {
+        unsafe { _mm_cvtss_f32(_mm_shuffle_ps(self.e, self.e, mm_shuffle(0, 0, 0, 0))) }
     }
     #[inline]
-    pub fn y(&self) -> f64 {
-        self.e[1]
+    pub fn y(&self) -> f32 {
+        unsafe { _mm_cvtss_f32(_mm_shuffle_ps(self.e, self.e, mm_shuffle(1, 1, 1, 1))) }
     }
     #[inline]
-    pub fn z(&self) -> f64 {
-        self.e[2]
+    pub fn z(&self) -> f32 {
+        unsafe { _mm_cvtss_f32(_mm_shuffle_ps(self.e, self.e, mm_shuffle(2, 2, 2, 2))) }
+    }
+
+    pub fn to_array(&self) -> [f32; 3] {
+        let mut array = [0.0; 3];
+        unsafe { _mm_store_ps(array.as_mut_ptr(), self.e) }
+        array
     }
 
     #[inline]
-    pub fn length(&self) -> f64 {
+    pub fn length(&self) -> f32 {
         self.length_squared().sqrt()
     }
     #[inline]
-    pub fn length_squared(&self) -> f64 {
-        self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2]
+    pub fn length_squared(&self) -> f32 {
+        self.dot(*self)
+    }
+    #[inline]
+    pub fn unit_vector(&self) -> Vec3 {
+        *self / self.length()
     }
 
-    pub const ORIGIN: Self = Self { e: [0.0, 0.0, 0.0] };
-    pub const BLACK: Self = Self::ORIGIN;
+    #[inline]
+    pub fn dot(&self, v: Vec3) -> f32 {
+        unsafe {
+            let mut sum = _mm_mul_ps(self.e, v.e);
+            sum = _mm_hadd_ps(sum, sum); // [x + y, z + w, x + z, y + w]
+            sum = _mm_hadd_ps(sum, sum); // [x + y + z + w; 4]
+            _mm_cvtss_f32(sum)
+        }
+    }
+
+    #[inline]
+    pub fn cross(&self, v: Vec3) -> Vec3 {
+        unsafe {
+            let tmp0 = _mm_shuffle_ps(v.e, v.e, mm_shuffle(3, 0, 2, 1));
+            let mut tmp1 = _mm_shuffle_ps(self.e, self.e, mm_shuffle(3, 0, 2, 1));
+            tmp1 = _mm_mul_ps(tmp1, v.e);
+            let tmp2 = _mm_fmsub_ps(tmp0, self.e, tmp1);
+
+            Vec3 {
+                e: _mm_shuffle_ps(tmp2, tmp2, mm_shuffle(3, 0, 2, 1)),
+            }
+        }
+    }
+
+    #[inline]
+    pub fn min(&self, v: Vec3) -> Vec3 {
+        Self {
+            e: unsafe { _mm_min_ps(self.e, v.e) },
+        }
+    }
+    #[inline]
+    pub fn max(&self, v: Vec3) -> Vec3 {
+        Self {
+            e: unsafe { _mm_max_ps(self.e, v.e) },
+        }
+    }
+    #[inline]
+    pub fn select_lt(&self, v: Vec3, mask: Vec3) -> Vec3 {
+        Self {
+            e: unsafe { _mm_blendv_ps(self.e, v.e, _mm_cmplt_ps(mask.e, Vec3::origin().e)) },
+        }
+    }
+}
+
+impl Vec3 {
+    pub fn origin() -> Self {
+        Self::from_scalar(0.0)
+    }
+    pub fn black() -> Self {
+        Self::origin()
+    }
 }
 
 impl Neg for Vec3 {
     type Output = Vec3;
 
+    #[inline]
     fn neg(self) -> Self::Output {
-        Vec3::new(-self.e[0], -self.e[1], -self.e[2])
-    }
-}
-
-impl Index<usize> for Vec3 {
-    type Output = f64;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.e[index]
-    }
-}
-impl IndexMut<usize> for Vec3 {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.e[index]
+        Self {
+            e: unsafe { _mm_xor_ps(self.e, _mm_set1_ps(-0.0)) },
+        }
     }
 }
 
@@ -81,19 +152,16 @@ impl Add for Vec3 {
 
     #[inline]
     fn add(self, rhs: Self) -> Self::Output {
-        Vec3::new(
-            self.e[0] + rhs.e[0],
-            self.e[1] + rhs.e[1],
-            self.e[2] + rhs.e[2],
-        )
+        Self {
+            e: unsafe { _mm_add_ps(self.e, rhs.e) },
+        }
     }
 }
 
 impl AddAssign for Vec3 {
+    #[inline]
     fn add_assign(&mut self, rhs: Self) {
-        self.e[0] += rhs.e[0];
-        self.e[1] += rhs.e[1];
-        self.e[2] += rhs.e[2];
+        self.e = unsafe { _mm_add_ps(self.e, rhs.e) };
     }
 }
 
@@ -102,11 +170,9 @@ impl Sub for Vec3 {
 
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
-        Vec3::new(
-            self.e[0] - rhs.e[0],
-            self.e[1] - rhs.e[1],
-            self.e[2] - rhs.e[2],
-        )
+        Self {
+            e: unsafe { _mm_sub_ps(self.e, rhs.e) },
+        }
     }
 }
 
@@ -115,24 +181,27 @@ impl Mul for Vec3 {
 
     #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
-        Vec3::new(
-            self.e[0] * rhs.e[0],
-            self.e[1] * rhs.e[1],
-            self.e[2] * rhs.e[2],
-        )
+        Self {
+            e: unsafe { _mm_mul_ps(self.e, rhs.e) },
+        }
     }
 }
 
-impl Mul<f64> for Vec3 {
+impl Mul<f32> for Vec3 {
     type Output = Vec3;
 
     #[inline]
-    fn mul(self, rhs: f64) -> Self::Output {
-        Vec3::new(rhs * self.e[0], rhs * self.e[1], rhs * self.e[2])
+    fn mul(self, rhs: f32) -> Self::Output {
+        unsafe {
+            let scalar = _mm_set1_ps(rhs);
+            Self {
+                e: _mm_mul_ps(self.e, scalar),
+            }
+        }
     }
 }
 
-impl Mul<Vec3> for f64 {
+impl Mul<Vec3> for f32 {
     type Output = Vec3;
 
     #[inline]
@@ -141,55 +210,74 @@ impl Mul<Vec3> for f64 {
     }
 }
 
-impl MulAssign<f64> for Vec3 {
-    fn mul_assign(&mut self, rhs: f64) {
-        self.e[0] *= rhs;
-        self.e[1] *= rhs;
-        self.e[2] *= rhs;
+impl MulAssign<f32> for Vec3 {
+    #[inline]
+    fn mul_assign(&mut self, rhs: f32) {
+        unsafe {
+            let scalar = _mm_set1_ps(rhs);
+            self.e = _mm_mul_ps(self.e, scalar);
+        }
     }
 }
 
-impl Div<f64> for Vec3 {
+impl Div<f32> for Vec3 {
     type Output = Self;
 
-    fn div(self, rhs: f64) -> Self::Output {
+    #[inline]
+    fn div(self, rhs: f32) -> Self::Output {
         (1.0 / rhs) * self
     }
 }
 
-impl DivAssign<f64> for Vec3 {
-    fn div_assign(&mut self, rhs: f64) {
+impl DivAssign<f32> for Vec3 {
+    #[inline]
+    fn div_assign(&mut self, rhs: f32) {
         *self *= 1.0 / rhs;
+    }
+}
+
+impl Div<Vec3> for f32 {
+    type Output = Vec3;
+
+    #[inline]
+    fn div(self, rhs: Vec3) -> Self::Output {
+        unsafe {
+            let scalar = _mm_set1_ps(self);
+            Vec3 {
+                e: _mm_div_ps(scalar, rhs.e),
+            }
+        }
+    }
+}
+
+impl PartialEq for Vec3 {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe { _mm_movemask_ps(_mm_cmpeq_ps(self.e, other.e)) == 0xF }
+    }
+}
+
+impl PartialOrd for Vec3 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        unsafe {
+            match _mm_movemask_ps(_mm_cmplt_ps(self.e, other.e)) {
+                0xF => Some(std::cmp::Ordering::Less),
+                _ => None,
+            }
+            .or_else(|| match _mm_movemask_ps(_mm_cmpgt_ps(self.e, other.e)) {
+                0xF => Some(std::cmp::Ordering::Greater),
+                _ => None,
+            })
+        }
     }
 }
 
 impl std::fmt::Display for Vec3 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.e[0], self.e[1], self.e[2])
+        write!(f, "[{}, {}, {}]", self.x(), self.y(), self.z())
     }
 }
 
-#[inline]
-pub fn dot(u: Vec3, v: Vec3) -> f64 {
-    u.e[0] * v.e[0] + u.e[1] * v.e[1] + u.e[2] * v.e[2]
-}
-
-#[inline]
-pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
-    Vec3::new(
-        u.e[1] * v.e[2] - u.e[2] * v.e[1],
-        u.e[2] * v.e[0] - u.e[0] * v.e[2],
-        u.e[0] * v.e[1] - u.e[1] * v.e[0],
-    )
-}
-
-#[inline]
-pub fn unit_vector(v: Vec3) -> Vec3 {
-    v / v.length()
-}
-
-pub fn random_in_unit_sphere() -> Vec3 {
-    let mut rng = rand::thread_rng();
+pub fn random_in_unit_sphere<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
     loop {
         let p = Vec3::new(
             rng.gen_range(-1.0, 1.0),
@@ -203,8 +291,7 @@ pub fn random_in_unit_sphere() -> Vec3 {
     }
 }
 
-pub fn random_in_unit_disk() -> Vec3 {
-    let mut rng = rand::thread_rng();
+pub fn random_in_unit_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
     loop {
         let p = Vec3::new(rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0), 0.0);
         if p.length_squared() >= 1.0 {
@@ -214,18 +301,9 @@ pub fn random_in_unit_disk() -> Vec3 {
     }
 }
 
-// pub fn random_unit_vector() -> Vec3 {
-//     let mut rng = rand::thread_rng();
-//     let a = rng.gen_range(0.0, 2.0 * PI);
-//     let z = rng.gen_range(-1.0, 1.0);
-//     let r = f64::sqrt(1.0 - z * z);
-//     Vec3::new(r * f64::cos(a), r * f64::sin(a), z)
-// }
-
-pub fn random_cosine_direction() -> Vec3 {
-    let mut rng = rand::thread_rng();
-    let r1: f64 = rng.gen();
-    let r2: f64 = rng.gen();
+pub fn random_cosine_direction<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
+    let r1: f32 = rng.gen();
+    let r2: f32 = rng.gen();
     let z = (1.0 - r2).sqrt();
 
     let phi = 2.0 * PI * r1;
@@ -235,10 +313,13 @@ pub fn random_cosine_direction() -> Vec3 {
     Vec3::new(x, y, z)
 }
 
-pub fn random_to_sphere(radius: f64, distance_squared: f64) -> Vec3 {
-    let mut rng = rand::thread_rng();
-    let r1: f64 = rng.gen();
-    let r2: f64 = rng.gen();
+pub fn random_to_sphere<R: rand::Rng + ?Sized>(
+    rng: &mut R,
+    radius: f32,
+    distance_squared: f32,
+) -> Vec3 {
+    let r1: f32 = rng.gen();
+    let r2: f32 = rng.gen();
     let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
 
     let phi = 2.0 * PI * r1;
@@ -249,12 +330,12 @@ pub fn random_to_sphere(radius: f64, distance_squared: f64) -> Vec3 {
 }
 
 pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
-    v - 2.0 * dot(v, n) * n
+    v - 2.0 * (v * n) * n
 }
 
-pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
-    let cos_theta = dot(-uv, n);
+pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f32) -> Vec3 {
+    let cos_theta = -uv * n;
     let r_out_perp = etai_over_etat * (uv + cos_theta * n);
-    let r_out_parallel = -f64::abs(1.0 - r_out_perp.length_squared()).sqrt() * n;
+    let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * n;
     r_out_perp + r_out_parallel
 }

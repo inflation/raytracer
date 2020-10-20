@@ -6,7 +6,7 @@ pub fn write_color(
     mut pixel_color: Color,
     samples_per_pixel: u32,
 ) -> Result<(), std::fmt::Error> {
-    let scale = 1.0 / samples_per_pixel as f64;
+    let scale = 1.0 / samples_per_pixel as f32;
     pixel_color *= scale;
     let (mut r, mut g, mut b) = (pixel_color.x(), pixel_color.y(), pixel_color.z());
 

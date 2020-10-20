@@ -20,7 +20,7 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, r: &crate::ray::Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut final_rec: Option<HitRecord> = None;
         let mut closest_so_far = t_max;
 
@@ -34,7 +34,7 @@ impl Hittable for HittableList {
         final_rec
     }
 
-    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
+    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
         let first = self.objects.first().and_then(|x| x.bounding_box(t0, t1))?;
 
         self.objects.iter().skip(1).fold(Some(first), |acc, x| {
@@ -46,8 +46,8 @@ impl Hittable for HittableList {
         })
     }
 
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
-        let weight = 1.0 / self.objects.len() as f64;
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
+        let weight = 1.0 / self.objects.len() as f32;
         let mut sum = 0.0;
 
         for object in &self.objects {
@@ -57,14 +57,14 @@ impl Hittable for HittableList {
         sum
     }
 
-    fn random(&self, o: Vec3) -> Vec3 {
+    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
         let size = self.objects.len();
 
         if size == 0 {
-            return Point3::ORIGIN;
+            return Point3::origin();
         }
 
         let index = rand::thread_rng().gen_range(0, size);
-        self.objects[index].random(o)
+        self.objects[index].random(rng, o)
     }
 }

@@ -5,9 +5,9 @@ use std::{fmt::Debug, sync::Arc};
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
-    pub t: f64,
-    pub u: f64,
-    pub v: f64,
+    pub t: f32,
+    pub u: f32,
+    pub v: f32,
     pub front_face: bool,
     pub mat_ptr: Arc<dyn Material>,
 }
@@ -17,12 +17,12 @@ impl HitRecord {
         r: &Ray,
         outward_normal: Vec3,
         p: Point3,
-        t: f64,
-        u: f64,
-        v: f64,
+        t: f32,
+        u: f32,
+        v: f32,
         mat_ptr: Arc<dyn Material>,
     ) -> Self {
-        let front_face = dot(r.direction(), outward_normal) < 0.0;
+        let front_face = r.direction().dot(outward_normal) < 0.0;
         let normal = if front_face {
             outward_normal
         } else {
@@ -41,17 +41,17 @@ impl HitRecord {
     }
 
     pub fn set_face_normal(&mut self, r: &Ray, normal: Vec3) {
-        self.front_face = dot(r.direction(), normal) < 0.0;
+        self.front_face = r.direction().dot(normal) < 0.0;
         self.normal = if self.front_face { normal } else { -normal };
     }
 }
 
 pub trait Hittable: Sync + Send + Debug {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
-    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB>;
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f64;
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
+    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB>;
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f32;
 
-    fn random(&self, _o: Vec3) -> Vec3 {
+    fn random(&self, _rng: &mut dyn rand::RngCore, _o: Vec3) -> Vec3 {
         vec3!(1.0, 0.0, 0.0)
     }
 }
@@ -69,7 +69,7 @@ impl Translate {
 }
 
 impl Hittable for Translate {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let moved_r = Ray::new(r.origin() - self.offset, r.direction(), r.time());
         if let Some(mut rec) = self.inner.hit(&moved_r, t_min, t_max) {
             rec.p += self.offset;
@@ -81,7 +81,7 @@ impl Hittable for Translate {
         }
     }
 
-    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
+    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
         if let Some(output_box) = self.inner.bounding_box(t0, t1) {
             Some(AABB::new(
                 output_box.min() + self.offset,
@@ -92,9 +92,9 @@ impl Hittable for Translate {
         }
     }
 
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
         if self
-            .hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY)
+            .hit(&Ray::new(o, v, 0.0), 0.001, f32::INFINITY)
             .is_some()
         {
             self.inner.pdf_value(o, v)
@@ -107,35 +107,32 @@ impl Hittable for Translate {
 #[derive(Debug)]
 pub struct RotateY {
     inner: Arc<dyn Hittable>,
-    sin_theta: f64,
-    cos_theta: f64,
+    sin_theta: f32,
+    cos_theta: f32,
     bbox: Option<AABB>,
 }
 
 impl RotateY {
-    pub fn new(inner: Arc<dyn Hittable>, angle: f64) -> Arc<Self> {
+    pub fn new(inner: Arc<dyn Hittable>, angle: f32) -> Arc<Self> {
         let radian = angle.to_radians();
         let sin_theta = radian.sin();
         let cos_theta = radian.cos();
         let bbox = inner.bounding_box(0.0, 1.0).map(|bbox| {
-            let mut min = Vec3 {
-                e: [f64::INFINITY; 3],
-            };
-            let mut max = Vec3 {
-                e: [f64::NEG_INFINITY; 3],
-            };
+            let mut min = [f32::INFINITY; 3];
+            let mut max = [f32::NEG_INFINITY; 3];
 
+            // TODO: SIMD
             for i in 0..2 {
                 for j in 0..2 {
                     for k in 0..2 {
-                        let x = i as f64 * bbox.max().x() + (1 - i) as f64 * bbox.min().x();
-                        let y = j as f64 * bbox.max().y() + (1 - j) as f64 * bbox.min().y();
-                        let z = k as f64 * bbox.max().z() + (1 - k) as f64 * bbox.min().z();
+                        let x = i as f32 * bbox.max().x() + (1 - i) as f32 * bbox.min().x();
+                        let y = j as f32 * bbox.max().y() + (1 - j) as f32 * bbox.min().y();
+                        let z = k as f32 * bbox.max().z() + (1 - k) as f32 * bbox.min().z();
 
                         let newx = cos_theta * x + sin_theta * z;
                         let newz = -sin_theta * x + cos_theta * z;
 
-                        let tester = Vec3::new(newx, y, newz);
+                        let tester = [newx, y, newz];
                         for c in 0..3 {
                             min[c] = min[c].min(tester[c]);
                             max[c] = max[c].max(tester[c]);
@@ -144,7 +141,7 @@ impl RotateY {
                 }
             }
 
-            AABB::new(min, max)
+            AABB::new(Vec3::from_array(min), Vec3::from_array(max))
         });
 
         Arc::new(Self {
@@ -157,31 +154,35 @@ impl RotateY {
 }
 
 impl Hittable for RotateY {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let mut origin = r.origin();
-        let mut direction = r.direction();
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let mut origin = r.origin().to_array();
+        let mut direction = r.direction().to_array();
 
         // Ray inversely rotated
-        origin[0] = self.cos_theta * r.origin()[0] - self.sin_theta * r.origin()[2];
-        origin[2] = self.sin_theta * r.origin()[0] + self.cos_theta * r.origin()[2];
+        origin[0] = self.cos_theta * r.origin().x() - self.sin_theta * r.origin().z();
+        origin[2] = self.sin_theta * r.origin().x() + self.cos_theta * r.origin().z();
 
-        direction[0] = self.cos_theta * r.direction()[0] - self.sin_theta * r.direction()[2];
-        direction[2] = self.sin_theta * r.direction()[0] + self.cos_theta * r.direction()[2];
+        direction[0] = self.cos_theta * r.direction().x() - self.sin_theta * r.direction().z();
+        direction[2] = self.sin_theta * r.direction().x() + self.cos_theta * r.direction().z();
 
-        let rotated_r = Ray::new(origin, direction, r.time());
+        let rotated_r = Ray::new(
+            Vec3::from_array(origin),
+            Vec3::from_array(direction),
+            r.time(),
+        );
 
         if let Some(mut rec) = self.inner.hit(&rotated_r, t_min, t_max) {
-            let mut p = rec.p;
-            let mut normal = rec.normal;
+            let mut p = rec.p.to_array();
+            let mut normal = rec.normal.to_array();
 
-            p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];
-            p[2] = -self.sin_theta * rec.p[0] + self.cos_theta * rec.p[2];
+            p[0] = self.cos_theta * rec.p.x() + self.sin_theta * rec.p.z();
+            p[2] = -self.sin_theta * rec.p.x() + self.cos_theta * rec.p.z();
 
-            normal[0] = self.cos_theta * rec.normal[0] + self.sin_theta * rec.normal[2];
-            normal[2] = -self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
+            normal[0] = self.cos_theta * rec.normal.x() + self.sin_theta * rec.normal.z();
+            normal[2] = -self.sin_theta * rec.normal.x() + self.cos_theta * rec.normal.z();
 
-            rec.p = p;
-            rec.set_face_normal(&rotated_r, normal);
+            rec.p = Vec3::from_array(p);
+            rec.set_face_normal(&rotated_r, Vec3::from_array(normal));
 
             Some(rec)
         } else {
@@ -189,13 +190,13 @@ impl Hittable for RotateY {
         }
     }
 
-    fn bounding_box(&self, _: f64, _: f64) -> Option<AABB> {
+    fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
         self.bbox
     }
 
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
         if self
-            .hit(&Ray::new(o, v, 0.0), 0.001, f64::INFINITY)
+            .hit(&Ray::new(o, v, 0.0), 0.001, f32::INFINITY)
             .is_some()
         {
             self.inner.pdf_value(o, v)
@@ -218,22 +219,22 @@ impl FlipFace {
 }
 
 impl Hittable for FlipFace {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         self.inner.hit(r, t_min, t_max).map(|rec| HitRecord {
             front_face: !rec.front_face,
             ..rec
         })
     }
 
-    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
+    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
         self.inner.bounding_box(t0, t1)
     }
 
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f64 {
+    fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
         self.inner.pdf_value(o, v)
     }
 
-    fn random(&self, o: Vec3) -> Vec3 {
-        self.inner.random(o)
+    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
+        self.inner.random(rng, o)
     }
 }
