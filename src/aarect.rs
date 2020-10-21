@@ -65,8 +65,8 @@ impl Hittable for XYRect {
 
     fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
         Some(AABB::new(
-            Point3::new(self.x0, self.y0, self.k - 0.0001),
-            Point3::new(self.x1, self.y1, self.k + 0.0001),
+            point!(self.x0, self.y0, self.k - 0.0001),
+            point!(self.x1, self.y1, self.k + 0.0001),
         ))
     }
 
@@ -152,8 +152,8 @@ impl Hittable for XZRect {
 
     fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
         Some(AABB::new(
-            Point3::new(self.x0, self.k - 0.0001, self.z0),
-            Point3::new(self.x1, self.k + 0.0001, self.z1),
+            point!(self.x0, self.k - 0.0001, self.z0),
+            point!(self.x1, self.k + 0.0001, self.z1),
         ))
     }
 
@@ -238,8 +238,8 @@ impl Hittable for YZRect {
 
     fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
         Some(AABB::new(
-            Point3::new(self.k - 0.0001, self.y0, self.z0),
-            Point3::new(self.k + 0.0001, self.y1, self.z1),
+            point!(self.k - 0.0001, self.y0, self.z0),
+            point!(self.k + 0.0001, self.y1, self.z1),
         ))
     }
 

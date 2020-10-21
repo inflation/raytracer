@@ -134,7 +134,7 @@ impl World {
             Lambertian::new(pertext.clone()),
         ));
         world.add(Sphere::new(
-            Point3::new(0.0, 2.0, 0.0),
+            point!(0.0, 2.0, 0.0),
             2.0,
             Lambertian::new(pertext),
         ));
@@ -278,8 +278,8 @@ impl World {
                 let z1 = z0 + w;
 
                 boxes1.add(Cuboid::new(
-                    Point3::new(x0, y0, z0),
-                    Point3::new(x1, y1, z1),
+                    point!(x0, y0, z0),
+                    point!(x1, y1, z1),
                     ground.clone(),
                 ));
             }

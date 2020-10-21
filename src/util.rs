@@ -3,7 +3,7 @@ use std::ops::Index;
 use crate::prelude::*;
 
 macro_rules! point {
-    ($x:literal, $y:literal, $z:literal) => {
+    ($x:expr, $y:expr, $z:expr) => {
         Vec3::new($x, $y, $z)
     };
 }
