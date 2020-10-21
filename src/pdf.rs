@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::hittable_list::*;
+use crate::{hittable_list::*, onb::*};
 
 use std::fmt::Debug;
 
@@ -12,13 +12,13 @@ pub trait PDF: Debug {
 #[derive(Debug)]
 
 pub struct CosinePDF {
-    uvw: ONB,
+    uvw: OrthonormalBasis,
 }
 
 impl CosinePDF {
     pub fn new(w: Vec3) -> Box<Self> {
         Box::new(Self {
-            uvw: ONB::from_w(w),
+            uvw: OrthonormalBasis::from_w(w),
         })
     }
 }

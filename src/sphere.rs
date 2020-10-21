@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+use crate::onb::*;
+
 use std::sync::Arc;
 #[derive(Debug)]
 pub struct Sphere {
@@ -100,7 +102,7 @@ impl Hittable for Sphere {
     fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
         let direction = self.center - o;
         let distance_squared = direction.length_squared();
-        let uvw = ONB::from_w(direction);
+        let uvw = OrthonormalBasis::from_w(direction);
 
         uvw.local(random_to_sphere(rng, self.radius, distance_squared))
     }

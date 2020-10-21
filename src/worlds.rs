@@ -144,19 +144,19 @@ impl World {
 
     pub fn earth() -> Self {
         let mut world = HittableList::new();
-        let mut lights = HittableList::new();
+        let lights = HittableList::new();
 
         let earth_texture = ImageTexture::new("assets/earthmap.jpg");
         let earth_surface = Lambertian::new(earth_texture);
         let globe = Sphere::new(Point3::origin(), 2.0, earth_surface);
-        add_lights(&mut world, &mut lights, globe);
+        world.add(globe);
 
         Self { world, lights }
     }
 
     pub fn simple_light() -> Self {
         let mut world = HittableList::new();
-        let mut lights = HittableList::new();
+        let lights = HittableList::new();
 
         let pertext = NoiseTexture::new(4.0);
         world.add(Sphere::new(
@@ -172,7 +172,7 @@ impl World {
 
         let difflight = DiffuseLight::white(4.0);
         let light = XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight);
-        add_lights(&mut world, &mut lights, light);
+        world.add(light);
 
         Self { world, lights }
     }

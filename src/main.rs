@@ -24,6 +24,7 @@ mod hittable;
 mod hittable_list;
 mod material;
 mod moving_sphere;
+mod onb;
 mod pdf;
 mod perlin;
 mod prelude;
