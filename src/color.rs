@@ -1,5 +1,4 @@
-use crate::util::*;
-use crate::vec3::*;
+use crate::prelude::*;
 
 pub fn write_color(
     f: &mut dyn std::fmt::Write,

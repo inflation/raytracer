@@ -1,4 +1,4 @@
-use crate::vec3::*;
+use crate::prelude::*;
 
 use itertools::Itertools;
 use rand::Rng;

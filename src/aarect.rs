@@ -1,4 +1,6 @@
-use crate::{aabb::*, hittable::*, material::*, ray::*, vec3::*};
+use crate::prelude::*;
+
+use crate::{aabb::*, hittable::*, material::*, ray::*};
 
 use rand::Rng;
 use std::sync::Arc;

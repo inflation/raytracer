@@ -29,35 +29,35 @@ impl std::default::Default for AABB {
 }
 
 impl AABB {
-    #[inline]
     pub fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> bool {
-        // for a in 0..3 {
-        //     let inv_d = 1.0 / r.direction()[a];
-        //     let mut t0 = (self.min[a] - r.origin()[a]) * inv_d;
-        //     let mut t1 = (self.max[a] - r.origin()[a]) * inv_d;
+        for a in 0..3 {
+            let inv_d = 1.0 / r.direction().to_array()[a];
+            let mut t0 = (self.min.to_array()[a] - r.origin().to_array()[a]) * inv_d;
+            let mut t1 = (self.max.to_array()[a] - r.origin().to_array()[a]) * inv_d;
 
-        //     if inv_d < 0.0 {
-        //         std::mem::swap(&mut t0, &mut t1);
-        //     }
+            if inv_d < 0.0 {
+                std::mem::swap(&mut t0, &mut t1);
+            }
 
-        //     let tmin = t0.max(t_min);
-        //     let tmax = t1.min(t_max);
+            let tmin = t0.max(t_min);
+            let tmax = t1.min(t_max);
 
-        //     if tmax <= tmin {
-        //         return false;
-        //     }
-        // }
+            if tmax <= tmin {
+                return false;
+            }
+        }
+        true
 
-        let inv_d = 1.0 / r.direction();
-        let t0 = (self.min - r.origin()) * inv_d;
-        let t1 = (self.max - r.origin()) * inv_d;
-        let tt0 = t0.select_lt(t1, inv_d);
-        let tt1 = t1.select_lt(t0, inv_d);
+        // let inv_d = 1.0 / r.direction();
+        // let t0 = (self.min - r.origin()) * inv_d;
+        // let t1 = (self.max - r.origin()) * inv_d;
+        // let tt0 = t0.select_lt(t1, inv_d);
+        // let tt1 = t1.select_lt(t0, inv_d);
 
-        let tmin = tt0.max(Vec3::from_scalar(t_min));
-        let tmax = tt1.min(Vec3::from_scalar(t_max));
+        // let tmin = tt0.max(Vec3::from_scalar(t_min));
+        // let tmax = tt1.min(Vec3::from_scalar(t_max));
 
-        tmax <= tmin
+        // tmax <= tmin
     }
 }
 

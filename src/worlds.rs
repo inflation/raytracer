@@ -29,7 +29,7 @@ impl World {
 impl World {
     pub fn random_scene() -> Self {
         let mut world = HittableList::new();
-        let mut lights = HittableList::new();
+        let lights = HittableList::new();
 
         let checker = CheckerTexture::new(rgb!(0.2, 0.3, 0.1), rgb!(0.9, 0.9, 0.9));
         let ground_material = Lambertian::new(checker);
@@ -72,13 +72,13 @@ impl World {
                         let sphere_material = Metal::new(albedo, fuzz);
                         let sphere = Sphere::new(center, 0.2, sphere_material);
 
-                        add_lights(&mut world, &mut lights, sphere);
+                        balls.add(sphere);
                     } else {
                         // glass
                         let sphere_material = Dielectric::new(1.5);
                         let sphere = Sphere::new(center, 0.2, sphere_material);
 
-                        add_lights(&mut world, &mut lights, sphere);
+                        balls.add(sphere);
                     }
                 }
             }
@@ -87,21 +87,21 @@ impl World {
 
         let glass = Dielectric::new(1.5);
         let sphere = Sphere::new(point!(0.0, 1.0, 0.0), 1.0, glass);
-        add_lights(&mut world, &mut lights, sphere);
+        world.add(sphere);
 
         let mat = Lambertian::new_rgb(0.4, 0.2, 0.1);
         world.add(Sphere::new(point!(-4.0, 1.0, 0.0), 1.0, mat));
 
         let metal = Metal::new_rgbf(0.7, 0.6, 0.5, 0.0);
         let sphere = Sphere::new(point!(4.0, 1.0, 0.0), 1.0, metal);
-        add_lights(&mut world, &mut lights, sphere);
+        world.add(sphere);
 
         Self { world, lights }
     }
 
     pub fn two_spheres() -> Self {
         let mut world = HittableList::new();
-        let mut lights = HittableList::new();
+        let lights = HittableList::new();
 
         let checker = CheckerTexture::new(rgb!(0.2, 0.3, 0.1), rgb!(0.9, 0.9, 0.9));
 
@@ -115,15 +115,9 @@ impl World {
             10.0,
             Lambertian::new(checker),
         ));
-
-        lights.add(XYRect::new(
-            -10.0,
-            10.0,
-            -10.0,
-            10.0,
-            -10.0,
-            DiffuseLight::white(0.0),
-        ));
+        let bvh = BVHNode::new_with_list(world, 0.0, 1.0);
+        world = HittableList::new();
+        world.add(bvh);
 
         Self { world, lights }
     }

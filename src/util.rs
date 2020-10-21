@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::vec3::*;
+use crate::prelude::*;
 
 macro_rules! point {
     ($x:literal, $y:literal, $z:literal) => {

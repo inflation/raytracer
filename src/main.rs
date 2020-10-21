@@ -58,13 +58,17 @@ fn ray_color(
             if let Some(specular) = specular_ray {
                 return attenuation * ray_color(rng, &specular, background, world, depth - 1);
             }
-            // let light_pdf = HittablePDF::new(world.lights(), rec.p);
-            // let p = MixturePDF::new(light_pdf, pdf_ptr.unwrap());
-            let p = pdf_ptr.unwrap();
+
+            let p: Box<dyn PDF>;
+            if world.lights().objects.is_empty() {
+                p = pdf_ptr.unwrap();
+            } else {
+                let light_pdf = HittablePDF::new(world.lights(), rec.p);
+                p = Box::new(MixturePDF::new(light_pdf, pdf_ptr.unwrap()));
+            }
 
             let scattered = Ray::new(rec.p, p.generate(rng), r.time());
             let pdf_val = p.value(scattered.direction());
-            // let pdf_val = 0.1;
 
             emitted
                 + attenuation
@@ -131,7 +135,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             aspect_ratio = 1.0;
             image_height = 600;
-            samples_per_pixel = 10;
             background = Color::black();
             look_from = point!(278.0, 278.0, -800.0);
             look_at = point!(278.0, 278.0, 0.0);
