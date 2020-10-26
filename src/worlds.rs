@@ -171,7 +171,13 @@ impl World {
         ));
 
         let difflight = DiffuseLight::white(4.0);
-        let light = XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight);
+        let light = AARect::new(
+            point!(3.0, 1.0, -2.0),
+            point!(5.0, 3.0, -2.0),
+            Plane::Xy,
+            -2.0,
+            difflight,
+        );
         world.add(light);
 
         Self { world, lights }
@@ -186,15 +192,23 @@ impl World {
         let green = Lambertian::new_rgb(0.12, 0.45, 0.15);
         let light = DiffuseLight::white(15.0);
 
-        let light = FlipFace::new(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, light));
+        let light = FlipFace::new(AARect::new(
+            point!(213.0, 227.0, 0.0),
+            point!(343.0, 332.0, 0.0),
+            Plane::Xz,
+            554.0,
+            light,
+        ));
 
         add_lights(&mut world, &mut lights, light);
 
-        world.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green));
-        world.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red));
-        world.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone()));
-        world.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()));
-        world.add(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()));
+        let origin = Point3::origin();
+        let corner = point!(555.0, 555.0, 0.0);
+        world.add(AARect::new(origin, corner, Plane::Yz, 555.0, green));
+        world.add(AARect::new(origin, corner, Plane::Yz, 0.0, red));
+        world.add(AARect::new(origin, corner, Plane::Xz, 0.0, white.clone()));
+        world.add(AARect::new(origin, corner, Plane::Xz, 555.0, white.clone()));
+        world.add(AARect::new(origin, corner, Plane::Xy, 555.0, white.clone()));
 
         // Boxes
         let glass = Dielectric::new(1.5);
@@ -233,14 +247,22 @@ impl World {
         let green = Lambertian::new_rgb(0.12, 0.45, 0.15);
         let light = DiffuseLight::white(7.0);
 
-        let light = FlipFace::new(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, light));
+        let light = FlipFace::new(AARect::new(
+            point!(113.0, 127.0, 0.0),
+            point!(443.0, 432.0, 0.0),
+            Plane::Xz,
+            554.0,
+            light,
+        ));
         add_lights(&mut world, &mut lights, light);
 
-        world.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green));
-        world.add(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red));
-        world.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone()));
-        world.add(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()));
-        world.add(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone()));
+        let origin = Point3::origin();
+        let corner = point!(555.0, 555.0, 0.0);
+        world.add(AARect::new(origin, corner, Plane::Yz, 555.0, green));
+        world.add(AARect::new(origin, corner, Plane::Yz, 0.0, red));
+        world.add(AARect::new(origin, corner, Plane::Xz, 0.0, white.clone()));
+        world.add(AARect::new(origin, corner, Plane::Xz, 555.0, white.clone()));
+        world.add(AARect::new(origin, corner, Plane::Xy, 555.0, white.clone()));
 
         // Boxes
         let mut box1: Arc<dyn Hittable> =
@@ -287,7 +309,13 @@ impl World {
         world.add(BVHNode::new_with_list(boxes1, 0.0, 1.0));
 
         let light = DiffuseLight::white(7.0);
-        let light = FlipFace::new(XZRect::new(123.0, 423.0, 147.0, 412.0, 554.0, light));
+        let light = FlipFace::new(AARect::new(
+            point!(123.0, 147.0, 0.0),
+            point!(423.0, 412.0, 0.0),
+            Plane::Xz,
+            554.0,
+            light,
+        ));
         add_lights(&mut world, &mut lights, light);
 
         let center1 = point!(400.0, 400.0, 200.0);

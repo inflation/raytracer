@@ -193,6 +193,14 @@ impl Div<Vec3> for f32 {
         }
     }
 }
+impl Div<Vec3> for Vec3 {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, rhs: Vec3) -> Self::Output {
+        (1.0 / rhs) * self
+    }
+}
 impl PartialEq for Vec3 {
     fn eq(&self, other: &Self) -> bool {
         unsafe { _mm_movemask_ps(_mm_cmpeq_ps(self.e, other.e)) == 0xF }
@@ -267,7 +275,7 @@ impl Vec3 {
         }
     }
     #[inline]
-    pub fn select_lt(&self, v: Vec3, mask: Vec3) -> Vec3 {
+    pub fn select_lt_0(&self, v: Vec3, mask: Vec3) -> Vec3 {
         Self {
             e: unsafe { _mm_blendv_ps(self.e, v.e, _mm_cmplt_ps(mask.e, Vec3::origin().e)) },
         }
@@ -399,6 +407,9 @@ mod tests {
 
         a /= 2.0;
         assert_eq!(a.to_array(), [1.0, 2.0, 4.0]);
+
+        let b = Vec3::from_scalar(2.0);
+        assert_eq!((a / b).to_array(), [0.5, 1.0, 2.0]);
     }
 
     #[test]
@@ -433,7 +444,7 @@ mod tests {
         assert_eq!(a.min(b).to_array(), [1.0, 1.0, 0.0]);
         assert_eq!(a.max(b).to_array(), [3.0, 3.0, 2.0]);
         assert_eq!(
-            a.select_lt(b, Vec3::new(-1.0, 1.0, -1.0)).to_array(),
+            a.select_lt_0(b, Vec3::new(-1.0, 1.0, -1.0)).to_array(),
             [1.0, 1.0, 0.0]
         );
     }

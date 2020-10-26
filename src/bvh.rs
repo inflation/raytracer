@@ -74,7 +74,6 @@ impl BVHNode {
             .and(box_b)
             .expect("No bounding box in BVHNode constructor");
 
-        // TODO: SIMD
         let a = box_a.unwrap().min().to_array()[axis];
         let b = box_b.unwrap().min().to_array()[axis];
         a.partial_cmp(&b).unwrap()

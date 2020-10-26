@@ -14,56 +14,14 @@ impl Cuboid {
     pub fn new(p0: Point3, p1: Point3, ptr: Arc<dyn Material>) -> Arc<Self> {
         let mut sides = HittableList::new();
 
-        sides.add(XYRect::new(
-            p0.x(),
-            p1.x(),
-            p0.y(),
-            p1.y(),
-            p1.z(),
-            ptr.clone(),
-        ));
-        sides.add(XYRect::new(
-            p0.x(),
-            p1.x(),
-            p0.y(),
-            p1.y(),
-            p0.z(),
-            ptr.clone(),
-        ));
+        sides.add(AARect::from_corner(p0, p1, Plane::Xy, p1.z(), ptr.clone()));
+        sides.add(AARect::from_corner(p0, p1, Plane::Xy, p0.z(), ptr.clone()));
 
-        sides.add(XZRect::new(
-            p0.x(),
-            p1.x(),
-            p0.z(),
-            p1.z(),
-            p1.y(),
-            ptr.clone(),
-        ));
-        sides.add(XZRect::new(
-            p0.x(),
-            p1.x(),
-            p0.z(),
-            p1.z(),
-            p0.y(),
-            ptr.clone(),
-        ));
+        sides.add(AARect::from_corner(p0, p1, Plane::Xz, p1.y(), ptr.clone()));
+        sides.add(AARect::from_corner(p0, p1, Plane::Xz, p0.y(), ptr.clone()));
 
-        sides.add(YZRect::new(
-            p0.y(),
-            p1.y(),
-            p0.z(),
-            p1.z(),
-            p1.x(),
-            ptr.clone(),
-        ));
-        sides.add(YZRect::new(
-            p0.y(),
-            p1.y(),
-            p0.z(),
-            p1.z(),
-            p0.x(),
-            ptr.clone(),
-        ));
+        sides.add(AARect::from_corner(p0, p1, Plane::Yz, p1.x(), ptr.clone()));
+        sides.add(AARect::from_corner(p0, p1, Plane::Yz, p0.x(), ptr.clone()));
 
         Arc::new(Self {
             box_min: p0,

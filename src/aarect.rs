@@ -6,51 +6,91 @@ use rand::Rng;
 use std::sync::Arc;
 
 #[derive(Debug)]
-pub struct XYRect {
+pub struct AARect {
     mat_ptr: Arc<dyn Material>,
-    x0: f32,
-    x1: f32,
-    y0: f32,
-    y1: f32,
+    a0: f32,
+    a1: f32,
+    b0: f32,
+    b1: f32,
     k: f32,
+    axis: Plane,
 }
 
-impl XYRect {
+impl AARect {
     pub fn new(
-        x0: f32,
-        x1: f32,
-        y0: f32,
-        y1: f32,
+        p0: Point3,
+        p1: Point3,
+        axis: Plane,
         k: f32,
         mat_ptr: Arc<dyn Material>,
     ) -> Arc<Self> {
+        let (a0, a1, b0, b1) = (p0.x(), p1.x(), p0.y(), p1.y());
         Arc::new(Self {
             mat_ptr,
-            x0,
-            x1,
-            y0,
-            y1,
+            a0,
+            a1,
+            b0,
+            b1,
             k,
+            axis,
+        })
+    }
+
+    pub fn from_corner(
+        p0: Point3,
+        p1: Point3,
+        axis: Plane,
+        k: f32,
+        mat_ptr: Arc<dyn Material>,
+    ) -> Arc<Self> {
+        let (a0, a1, b0, b1) = match axis {
+            Plane::Xy => (p0.x(), p1.x(), p0.y(), p1.y()),
+            Plane::Xz => (p0.x(), p1.x(), p0.z(), p1.z()),
+            Plane::Yz => (p0.y(), p1.y(), p0.z(), p1.z()),
+        };
+        Arc::new(Self {
+            mat_ptr,
+            a0,
+            a1,
+            b0,
+            b1,
+            k,
+            axis,
         })
     }
 }
 
-impl Hittable for XYRect {
+impl Hittable for AARect {
     fn hit(&self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord> {
-        let t = (self.k - r.origin().z()) / r.direction().z();
+        let tt = (Vec3::from_scalar(self.k) - r.origin()) / r.direction();
+        let t = match self.axis {
+            Plane::Xy => tt.z(),
+            Plane::Xz => tt.y(),
+            Plane::Yz => tt.x(),
+        };
+
         if t < t0 || t > t1 {
             return None;
         }
-        let x = r.origin().x() + t * r.direction().x();
-        let y = r.origin().y() + t * r.direction().y();
-        if x < self.x0 || x > self.x1 || y < self.y0 || y > self.y1 {
+
+        let rr = r.origin() + t * r.direction();
+        let (a, b) = match self.axis {
+            Plane::Xy => (rr.x(), rr.y()),
+            Plane::Xz => (rr.x(), rr.z()),
+            Plane::Yz => (rr.y(), rr.z()),
+        };
+        if a < self.a0 || a > self.a1 || b < self.b0 || b > self.b1 {
             return None;
         }
 
-        let u = (x - self.x0) / (self.x1 - self.x0);
-        let v = (y - self.y0) / (self.y1 - self.y0);
+        let u = (a - self.a0) / (self.a1 - self.a0);
+        let v = (b - self.b0) / (self.b1 - self.b0);
         let p = r.at(t);
-        let outward_normal = Vec3::new(0.0, 0.0, 1.0);
+        let outward_normal = match self.axis {
+            Plane::Xy => vec3!(0.0, 0.0, 1.0),
+            Plane::Xz => vec3!(0.0, 1.0, 0.0),
+            Plane::Yz => vec3!(1.0, 0.0, 0.0),
+        };
 
         Some(HitRecord::new(
             r,
@@ -65,14 +105,14 @@ impl Hittable for XYRect {
 
     fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
         Some(AABB::new(
-            point!(self.x0, self.y0, self.k - 0.0001),
-            point!(self.x1, self.y1, self.k + 0.0001),
+            point!(self.k - 0.0001, self.a0, self.b0),
+            point!(self.k + 0.0001, self.a1, self.b1),
         ))
     }
 
     fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
         if let Some(rec) = self.hit(&Ray::new(o, v, 0.0), 0.001, f32::INFINITY) {
-            let area = (self.x1 - self.x0) * (self.y1 - self.y0);
+            let area = (self.a1 - self.a0) * (self.b1 - self.b0);
             let distance_squared = rec.t * rec.t * v.length_squared();
             let cos = (v.dot(rec.normal) / v.length()).abs();
 
@@ -83,183 +123,10 @@ impl Hittable for XYRect {
     }
 
     fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
-        let random_point = Point3::new(
-            rng.gen_range(self.x0, self.x1),
+        let random_point = point!(
+            rng.gen_range(self.a0, self.a1),
             self.k,
-            rng.gen_range(self.y0, self.y1),
-        );
-        random_point - o
-    }
-}
-
-#[derive(Debug)]
-pub struct XZRect {
-    mat_ptr: Arc<dyn Material>,
-    x0: f32,
-    x1: f32,
-    z0: f32,
-    z1: f32,
-    k: f32,
-}
-
-impl XZRect {
-    pub fn new(
-        x0: f32,
-        x1: f32,
-        z0: f32,
-        z1: f32,
-        k: f32,
-        mat_ptr: Arc<dyn Material>,
-    ) -> Arc<Self> {
-        Arc::new(Self {
-            mat_ptr,
-            x0,
-            x1,
-            z0,
-            z1,
-            k,
-        })
-    }
-}
-
-impl Hittable for XZRect {
-    fn hit(&self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord> {
-        let t = (self.k - r.origin().y()) / r.direction().y();
-        if t < t0 || t > t1 {
-            return None;
-        }
-        let x = r.origin().x() + t * r.direction().x();
-        let z = r.origin().z() + t * r.direction().z();
-        if x < self.x0 || x > self.x1 || z < self.z0 || z > self.z1 {
-            return None;
-        }
-
-        let u = (x - self.x0) / (self.x1 - self.x0);
-        let v = (z - self.z0) / (self.z1 - self.z0);
-        let p = r.at(t);
-        let outward_normal = Vec3::new(0.0, 1.0, 0.0);
-
-        Some(HitRecord::new(
-            r,
-            outward_normal,
-            p,
-            t,
-            u,
-            v,
-            self.mat_ptr.clone(),
-        ))
-    }
-
-    fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
-        Some(AABB::new(
-            point!(self.x0, self.k - 0.0001, self.z0),
-            point!(self.x1, self.k + 0.0001, self.z1),
-        ))
-    }
-
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
-        if let Some(rec) = self.hit(&Ray::new(o, v, 0.0), 0.001, f32::INFINITY) {
-            let area = (self.x1 - self.x0) * (self.z1 - self.z0);
-            let distance_squared = rec.t * rec.t * v.length_squared();
-            let cos = (v.dot(rec.normal) / v.length()).abs();
-
-            distance_squared / (cos * area)
-        } else {
-            0.0
-        }
-    }
-
-    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
-        let random_point = Point3::new(
-            rng.gen_range(self.x0, self.x1),
-            self.k,
-            rng.gen_range(self.z0, self.z1),
-        );
-        random_point - o
-    }
-}
-#[derive(Debug)]
-pub struct YZRect {
-    mat_ptr: Arc<dyn Material>,
-    y0: f32,
-    y1: f32,
-    z0: f32,
-    z1: f32,
-    k: f32,
-}
-
-impl YZRect {
-    pub fn new(
-        y0: f32,
-        y1: f32,
-        z0: f32,
-        z1: f32,
-        k: f32,
-        mat_ptr: Arc<dyn Material>,
-    ) -> Arc<Self> {
-        Arc::new(Self {
-            mat_ptr,
-            y0,
-            y1,
-            z0,
-            z1,
-            k,
-        })
-    }
-}
-
-impl Hittable for YZRect {
-    fn hit(&self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord> {
-        let t = (self.k - r.origin().x()) / r.direction().x();
-        if t < t0 || t > t1 {
-            return None;
-        }
-        let y = r.origin().y() + t * r.direction().y();
-        let z = r.origin().z() + t * r.direction().z();
-        if y < self.y0 || y > self.y1 || z < self.z0 || z > self.z1 {
-            return None;
-        }
-
-        let u = (y - self.y0) / (self.y1 - self.y0);
-        let v = (z - self.z0) / (self.z1 - self.z0);
-        let p = r.at(t);
-        let outward_normal = Vec3::new(1.0, 0.0, 0.0);
-
-        Some(HitRecord::new(
-            r,
-            outward_normal,
-            p,
-            t,
-            u,
-            v,
-            self.mat_ptr.clone(),
-        ))
-    }
-
-    fn bounding_box(&self, _: f32, _: f32) -> Option<AABB> {
-        Some(AABB::new(
-            point!(self.k - 0.0001, self.y0, self.z0),
-            point!(self.k + 0.0001, self.y1, self.z1),
-        ))
-    }
-
-    fn pdf_value(&self, o: Point3, v: Vec3) -> f32 {
-        if let Some(rec) = self.hit(&Ray::new(o, v, 0.0), 0.001, f32::INFINITY) {
-            let area = (self.y1 - self.y0) * (self.z1 - self.z0);
-            let distance_squared = rec.t * rec.t * v.length_squared();
-            let cos = (v.dot(rec.normal) / v.length()).abs();
-
-            distance_squared / (cos * area)
-        } else {
-            0.0
-        }
-    }
-
-    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
-        let random_point = Point3::new(
-            rng.gen_range(self.y0, self.y1),
-            self.k,
-            rng.gen_range(self.z0, self.z1),
+            rng.gen_range(self.b0, self.b1)
         );
         random_point - o
     }

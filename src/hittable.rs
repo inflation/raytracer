@@ -206,7 +206,7 @@ impl Hittable for RotateY {
     }
 }
 
-// Flip face
+// Flip Face
 #[derive(Debug)]
 pub struct FlipFace {
     inner: Arc<dyn Hittable>,
