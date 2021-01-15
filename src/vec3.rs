@@ -71,11 +71,8 @@ impl Vec3 {
     }
     #[inline]
     pub fn random_with_bound(rng: &mut impl rand::Rng, min: f32, max: f32) -> Self {
-        Self::new(
-            rng.gen_range(min, max),
-            rng.gen_range(min, max),
-            rng.gen_range(min, max),
-        )
+        let dist = rand::distributions::Uniform::new(min, max);
+        Self::new(rng.sample(dist), rng.sample(dist), rng.sample(dist))
     }
 }
 
@@ -289,12 +286,9 @@ impl std::fmt::Display for Vec3 {
 }
 
 pub fn random_in_unit_sphere<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
+    let dist = rand::distributions::Uniform::new(-1.0, 1.0);
     loop {
-        let p = Vec3::new(
-            rng.gen_range(-1.0, 1.0),
-            rng.gen_range(-1.0, 1.0),
-            rng.gen_range(-1.0, 1.0),
-        );
+        let p = Vec3::new(rng.sample(dist), rng.sample(dist), rng.sample(dist));
         if p.length_squared() >= 1.0 {
             continue;
         }
@@ -303,8 +297,9 @@ pub fn random_in_unit_sphere<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
 }
 
 pub fn random_in_unit_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
+    let dist = rand::distributions::Uniform::new(-1.0, 1.0);
     loop {
-        let p = Vec3::new(rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0), 0.0);
+        let p = Vec3::new(rng.sample(dist), rng.sample(dist), 0.0);
         if p.length_squared() >= 1.0 {
             continue;
         }
@@ -313,8 +308,9 @@ pub fn random_in_unit_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
 }
 
 pub fn random_cosine_direction<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
-    let r1: f32 = rng.gen();
-    let r2: f32 = rng.gen();
+    let dist = rand::distributions::Uniform::new(0.0, 1.0);
+    let r1: f32 = rng.sample(dist);
+    let r2: f32 = rng.sample(dist);
     let z = (1.0 - r2).sqrt();
 
     let phi = 2.0 * PI * r1;
@@ -329,8 +325,9 @@ pub fn random_to_sphere<R: rand::Rng + ?Sized>(
     radius: f32,
     distance_squared: f32,
 ) -> Vec3 {
-    let r1: f32 = rng.gen();
-    let r2: f32 = rng.gen();
+    let dist = rand::distributions::Uniform::new(0.0, 1.0);
+    let r1: f32 = rng.sample(dist);
+    let r2: f32 = rng.sample(dist);
     let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
 
     let phi = 2.0 * PI * r1;

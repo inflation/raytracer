@@ -124,9 +124,9 @@ impl Hittable for AARect {
 
     fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
         let random_point = point!(
-            rng.gen_range(self.a0, self.a1),
+            rng.gen_range(self.a0..self.a1),
             self.k,
-            rng.gen_range(self.b0, self.b1)
+            rng.gen_range(self.b0..self.b1)
         );
         random_point - o
     }

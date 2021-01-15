@@ -21,7 +21,7 @@ impl BVHNode {
         time0: f32,
         time1: f32,
     ) -> Arc<Self> {
-        let axis = rand::thread_rng().gen_range(0, 3);
+        let axis = rand::thread_rng().gen_range(0..3);
         let object_span = end - start;
         let left: Arc<dyn Hittable>;
         let right: Arc<dyn Hittable>;

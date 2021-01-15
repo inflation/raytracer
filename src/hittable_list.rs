@@ -64,7 +64,7 @@ impl Hittable for HittableList {
             return Point3::origin();
         }
 
-        let index = rand::thread_rng().gen_range(0, size);
+        let index = rand::thread_rng().gen_range(0..size);
         self.objects[index].random(rng, o)
     }
 }

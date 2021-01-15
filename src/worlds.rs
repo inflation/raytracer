@@ -4,7 +4,7 @@ use crate::{
     aarect::*, bvh::*, constant_medium::*, cuboid::*, hittable_list::*, moving_sphere::*, sphere::*,
 };
 
-use rand::Rng;
+use rand::prelude::*;
 use std::sync::Arc;
 
 fn add_lights(world: &mut HittableList, lights: &mut HittableList, object: Arc<dyn Hittable>) {
@@ -39,16 +39,17 @@ impl World {
             ground_material,
         ));
 
-        let mut rng = rand::thread_rng();
+        let mut rng = SmallRng::from_entropy();
         let mut balls = HittableList::new();
+        let dist = rand::distributions::Uniform::new(0.0, 1.0);
 
         for a in -11..11 {
             for b in -11..11 {
-                let choose_mat: f32 = rng.gen();
+                let choose_mat = rng.sample(dist);
                 let center = Point3::new(
-                    a as f32 + 0.9 * rng.gen::<f32>(),
+                    a as f32 + 0.9 * rng.sample(dist),
                     0.2,
-                    b as f32 + 0.9 * rng.gen::<f32>(),
+                    b as f32 + 0.9 * rng.sample(dist),
                 );
 
                 if (center - point!(4.0, 0.2, 0.0)).length() > 0.9 {
@@ -56,7 +57,7 @@ impl World {
                         // diffuse
                         let albedo = Color::random(&mut rng) * Color::random(&mut rng);
                         let sphere_material = Lambertian::from_color(albedo);
-                        let center2 = center + Vec3::new(0.0, rng.gen_range(0.0, 0.5), 0.0);
+                        let center2 = center + Vec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
                         balls.add(MovingSphere::new(
                             center,
                             center2,
@@ -68,7 +69,7 @@ impl World {
                     } else if choose_mat < 0.95 {
                         // metal
                         let albedo = Color::random_with_bound(&mut rng, 0.5, 1.0);
-                        let fuzz = rng.gen_range(0.0, 0.5);
+                        let fuzz = rng.gen_range(0.0..0.5);
                         let sphere_material = Metal::new(albedo, fuzz);
                         let sphere = Sphere::new(center, 0.2, sphere_material);
 
@@ -281,7 +282,7 @@ impl World {
     }
 
     pub fn final_scene() -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = SmallRng::from_entropy();
         let mut world = HittableList::new();
         let mut lights = HittableList::new();
 
@@ -296,7 +297,7 @@ impl World {
                 let z0 = -1000.0 + j as f32 * w;
                 let y0 = 0.0;
                 let x1 = x0 + w;
-                let y1 = rng.gen_range(1.0, 101.0);
+                let y1 = rng.gen_range(1.0..101.0);
                 let z1 = z0 + w;
 
                 boxes1.add(Cuboid::new(
