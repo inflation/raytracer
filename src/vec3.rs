@@ -7,6 +7,9 @@ use std::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
 
+use rand::distributions::Distribution;
+use rand::Rng;
+
 // From unstable std::arch
 #[inline]
 const fn mm_shuffle(z: u32, y: u32, x: u32, w: u32) -> i32 {
@@ -285,8 +288,8 @@ impl std::fmt::Display for Vec3 {
     }
 }
 
-pub fn random_in_unit_sphere<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
-    let dist = rand::distributions::Uniform::new(-1.0, 1.0);
+// TODO: Need to specify of -1.0 to 1.0
+pub fn random_in_unit_sphere<R: Rng + ?Sized>(rng: &mut R, dist: &impl Distribution<f32>) -> Vec3 {
     loop {
         let p = Vec3::new(rng.sample(dist), rng.sample(dist), rng.sample(dist));
         if p.length_squared() >= 1.0 {
@@ -296,8 +299,8 @@ pub fn random_in_unit_sphere<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
     }
 }
 
-pub fn random_in_unit_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
-    let dist = rand::distributions::Uniform::new(-1.0, 1.0);
+// TODO: Need to specify of -1.0 to 1.0
+pub fn random_in_unit_disk<R: Rng + ?Sized>(rng: &mut R, dist: &impl Distribution<f32>) -> Vec3 {
     loop {
         let p = Vec3::new(rng.sample(dist), rng.sample(dist), 0.0);
         if p.length_squared() >= 1.0 {
@@ -307,8 +310,10 @@ pub fn random_in_unit_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
     }
 }
 
-pub fn random_cosine_direction<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
-    let dist = rand::distributions::Uniform::new(0.0, 1.0);
+pub fn random_cosine_direction<R: rand::Rng + ?Sized>(
+    rng: &mut R,
+    dist: &impl Distribution<f32>,
+) -> Vec3 {
     let r1: f32 = rng.sample(dist);
     let r2: f32 = rng.sample(dist);
     let z = (1.0 - r2).sqrt();
@@ -322,10 +327,10 @@ pub fn random_cosine_direction<R: rand::Rng + ?Sized>(rng: &mut R) -> Vec3 {
 
 pub fn random_to_sphere<R: rand::Rng + ?Sized>(
     rng: &mut R,
+    dist: &impl Distribution<f32>,
     radius: f32,
     distance_squared: f32,
 ) -> Vec3 {
-    let dist = rand::distributions::Uniform::new(0.0, 1.0);
     let r1: f32 = rng.sample(dist);
     let r2: f32 = rng.sample(dist);
     let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use rand::Rng;
+use rand::{distributions::Uniform, Rng};
 use std::sync::Arc;
 #[derive(Debug)]
 pub struct HittableList {
@@ -57,14 +57,14 @@ impl Hittable for HittableList {
         sum
     }
 
-    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
+    fn random(&self, rng: &mut dyn rand::RngCore, dist: &Uniform<f32>, o: Vec3) -> Vec3 {
         let size = self.objects.len();
 
         if size == 0 {
             return Point3::origin();
         }
 
-        let index = rand::thread_rng().gen_range(0..size);
-        self.objects[index].random(rng, o)
+        let index = rng.gen_range(0..size);
+        self.objects[index].random(rng, dist, o)
     }
 }

@@ -2,6 +2,8 @@ use crate::prelude::*;
 
 use std::{fmt::Debug, sync::Arc};
 
+use rand::distributions::Uniform;
+
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
@@ -51,7 +53,7 @@ pub trait Hittable: Sync + Send + Debug {
     fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB>;
     fn pdf_value(&self, o: Point3, v: Vec3) -> f32;
 
-    fn random(&self, _rng: &mut dyn rand::RngCore, _o: Vec3) -> Vec3 {
+    fn random(&self, _rng: &mut dyn rand::RngCore, _dist: &Uniform<f32>, _o: Vec3) -> Vec3 {
         vec3!(1.0, 0.0, 0.0)
     }
 }
@@ -234,7 +236,7 @@ impl Hittable for FlipFace {
         self.inner.pdf_value(o, v)
     }
 
-    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
-        self.inner.random(rng, o)
+    fn random(&self, rng: &mut dyn rand::RngCore, dist: &Uniform<f32>, o: Vec3) -> Vec3 {
+        self.inner.random(rng, dist, o)
     }
 }

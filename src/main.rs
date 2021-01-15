@@ -3,12 +3,13 @@ use prelude::*;
 use camera::*;
 use color::*;
 use pdf::*;
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use worlds::*;
 
 use indicatif::ParallelProgressIterator;
-use rand::Rng;
-use rayon::prelude::*;
-use std::sync::Arc;
+use rand::{distributions::Uniform, prelude::*};
+
+use std::{cell::RefCell, sync::Arc};
 
 #[macro_use]
 mod util;
@@ -39,6 +40,7 @@ static GLOBAL: mimallocator::Mimalloc = mimallocator::Mimalloc;
 
 fn ray_color(
     rng: &mut impl Rng,
+    dist: &Uniform<f32>,
     r: &Ray,
     background: Color,
     world: Arc<World>,
@@ -54,10 +56,10 @@ fn ray_color(
             specular_ray,
             attenuation,
             pdf_ptr,
-        }) = rec.mat_ptr.scatter(rng, r, &rec)
+        }) = rec.mat_ptr.scatter(rng, dist, r, &rec)
         {
             if let Some(specular) = specular_ray {
-                return attenuation * ray_color(rng, &specular, background, world, depth - 1);
+                return attenuation * ray_color(rng, dist, &specular, background, world, depth - 1);
             }
 
             let p: Box<dyn PDF>;
@@ -68,13 +70,13 @@ fn ray_color(
                 p = Box::new(MixturePDF::new(light_pdf, pdf_ptr.unwrap()));
             }
 
-            let scattered = Ray::new(rec.p, p.generate(rng), r.time());
+            let scattered = Ray::new(rec.p, p.generate(rng, dist), r.time());
             let pdf_val = p.value(scattered.direction());
 
             emitted
                 + attenuation
                     * rec.mat_ptr.scattering_pdf(r, &rec, &scattered)
-                    * ray_color(rng, &scattered, background, world.clone(), depth - 1)
+                    * ray_color(rng, dist, &scattered, background, world.clone(), depth - 1)
                     / pdf_val
         } else {
             emitted
@@ -185,6 +187,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Render
     println!("P3\n{} {}\n255", image_width, image_height);
 
+    thread_local! {
+    static RNG: RefCell<SmallRng> = RefCell::new(rand::rngs::SmallRng::from_entropy());
+    }
+    let dist = rand::distributions::Uniform::new(0.0, 1.0);
+
     let result: Vec<String> = (0..image_height)
         .into_par_iter()
         .rev()
@@ -194,20 +201,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .into_par_iter()
                 .map(|i| {
                     let mut pixel_color = Color::black();
-                    let mut rng = rand::thread_rng();
+                    RNG.with(|rng| {
+                        let rng = &mut *rng.borrow_mut();
+                        for _ in 0..samples_per_pixel {
+                            let u = (i as f32 + rng.sample(dist)) / (image_width - 1) as f32;
+                            let v = (j as f32 + rng.sample(dist)) / (image_height - 1) as f32;
 
-                    for _ in 0..samples_per_pixel {
-                        let u = (i as f32 + rng.gen::<f32>()) / (image_width - 1) as f32;
-                        let v = (j as f32 + rng.gen::<f32>()) / (image_height - 1) as f32;
+                            let r = cam.get_ray(rng, &dist, u, v);
+                            pixel_color +=
+                                ray_color(rng, &dist, &r, background, world.clone(), MAX_DEPTH);
+                        }
 
-                        let r = cam.get_ray(&mut rng, u, v);
-                        pixel_color +=
-                            ray_color(&mut rng, &r, background, world.clone(), MAX_DEPTH);
-                    }
-
-                    let mut buffer = String::new();
-                    write_color(&mut buffer, pixel_color, samples_per_pixel).unwrap();
-                    buffer
+                        let mut buffer = String::new();
+                        write_color(&mut buffer, pixel_color, samples_per_pixel).unwrap();
+                        buffer
+                    })
                 })
                 .collect()
         })

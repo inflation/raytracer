@@ -55,8 +55,14 @@ impl Camera {
         }
     }
 
-    pub fn get_ray(&self, rng: &mut impl rand::Rng, s: f32, t: f32) -> Ray {
-        let rd = self.lens_radius * random_in_unit_disk(rng);
+    pub fn get_ray(
+        &self,
+        rng: &mut impl rand::Rng,
+        dist: &impl rand::distributions::Distribution<f32>,
+        s: f32,
+        t: f32,
+    ) -> Ray {
+        let rd = self.lens_radius * random_in_unit_disk(rng, dist);
         let offset = self.u * rd.x() + self.v * rd.y();
 
         Ray::new(

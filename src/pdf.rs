@@ -1,12 +1,13 @@
 use crate::prelude::*;
-
 use crate::{hittable_list::*, onb::*};
 
 use std::fmt::Debug;
 
+use rand::{distributions::Uniform, Rng};
+
 pub trait PDF: Debug {
     fn value(&self, direction: Vec3) -> f32;
-    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3;
+    fn generate(&self, rng: &mut dyn rand::RngCore, dist: &Uniform<f32>) -> Vec3;
 }
 
 #[derive(Debug)]
@@ -29,8 +30,8 @@ impl PDF for CosinePDF {
         (cos / PI).max(0.0)
     }
 
-    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3 {
-        self.uvw.local(random_cosine_direction(rng))
+    fn generate(&self, rng: &mut dyn rand::RngCore, dist: &Uniform<f32>) -> Vec3 {
+        self.uvw.local(random_cosine_direction(rng, dist))
     }
 }
 
@@ -50,8 +51,8 @@ impl PDF for HittablePDF<'_> {
     fn value(&self, direction: Vec3) -> f32 {
         self.ptr.pdf_value(self.o, direction)
     }
-    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3 {
-        self.ptr.random(rng, self.o)
+    fn generate(&self, rng: &mut dyn rand::RngCore, dist: &Uniform<f32>) -> Vec3 {
+        self.ptr.random(rng, dist, self.o)
     }
 }
 
@@ -70,11 +71,11 @@ impl PDF for MixturePDF<'_> {
     fn value(&self, direction: Vec3) -> f32 {
         0.5 * self.p[0].value(direction) + 0.5 * self.p[1].value(direction)
     }
-    fn generate(&self, rng: &mut dyn rand::RngCore) -> Vec3 {
-        if rand::random::<f32>() < 0.5 {
-            self.p[0].generate(rng)
+    fn generate(&self, rng: &mut dyn rand::RngCore, dist: &Uniform<f32>) -> Vec3 {
+        if rng.gen::<f32>() < 0.5 {
+            self.p[0].generate(rng, dist)
         } else {
-            self.p[1].generate(rng)
+            self.p[1].generate(rng, dist)
         }
     }
 }

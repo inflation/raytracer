@@ -46,10 +46,10 @@ impl Perlin {
             let mut c: [[[MaybeUninit<Vec3>; 2]; 2]; 2] =
                 unsafe { MaybeUninit::uninit().assume_init() };
 
-            for di in 0..2 {
-                for dj in 0..2 {
-                    for dk in 0..2 {
-                        c[di][dj][dk] = MaybeUninit::new(
+            for (di, i_line) in c.iter_mut().enumerate() {
+                for (dj, k_line) in i_line.iter_mut().enumerate() {
+                    for (dk, cell) in k_line.iter_mut().enumerate() {
+                        *cell = MaybeUninit::new(
                             self.ran_vec[self.perm_x[((i + di as i32) & 255) as usize]
                                 ^ self.perm_y[((j + dj as i32) & 255) as usize]
                                 ^ self.perm_z[((k + dk as i32) & 255) as usize]],
@@ -105,14 +105,14 @@ impl Perlin {
         let ww = w * w * (3.0 - 2.0 * w);
         let mut accum = 0.0;
 
-        for i in 0..2 {
-            for j in 0..2 {
-                for k in 0..2 {
+        for (i, j_line) in c.iter().enumerate() {
+            for (j, k_line) in j_line.iter().enumerate() {
+                for (k, cell) in k_line.iter().enumerate() {
                     let weight_v = Vec3::new(u - i as f32, v - j as f32, w - k as f32);
                     accum += (i as f32 * uu + (1.0 - i as f32) * (1.0 - uu))
                         * (j as f32 * vv + (1.0 - j as f32) * (1.0 - vv))
                         * (k as f32 * ww + (1.0 - k as f32) * (1.0 - ww))
-                        * c[i][j][k].dot(weight_v);
+                        * cell.dot(weight_v);
                 }
             }
         }

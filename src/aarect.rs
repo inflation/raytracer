@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use crate::{aabb::*, hittable::*, material::*, ray::*};
 
-use rand::Rng;
+use rand::{distributions::Uniform, Rng};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -122,7 +122,7 @@ impl Hittable for AARect {
         }
     }
 
-    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
+    fn random(&self, rng: &mut dyn rand::RngCore, _: &Uniform<f32>, o: Vec3) -> Vec3 {
         let random_point = point!(
             rng.gen_range(self.a0..self.a1),
             self.k,

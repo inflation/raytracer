@@ -1,3 +1,5 @@
+use rand::distributions::Uniform;
+
 use crate::prelude::*;
 
 use crate::onb::*;
@@ -99,11 +101,11 @@ impl Hittable for Sphere {
         }
     }
 
-    fn random(&self, rng: &mut dyn rand::RngCore, o: Vec3) -> Vec3 {
+    fn random(&self, rng: &mut dyn rand::RngCore, dist: &Uniform<f32>, o: Vec3) -> Vec3 {
         let direction = self.center - o;
         let distance_squared = direction.length_squared();
         let uvw = OrthonormalBasis::from_w(direction);
 
-        uvw.local(random_to_sphere(rng, self.radius, distance_squared))
+        uvw.local(random_to_sphere(rng, dist, self.radius, distance_squared))
     }
 }

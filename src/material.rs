@@ -1,3 +1,5 @@
+use rand::distributions::Uniform;
+
 use crate::prelude::*;
 
 use crate::pdf::*;
@@ -8,6 +10,7 @@ pub trait Material: Sync + Send + Debug {
     fn scatter(
         &self,
         _rng: &mut dyn rand::RngCore,
+        _dist: &rand::distributions::Uniform<f32>,
         _r_in: &Ray,
         _rec: &HitRecord,
     ) -> Option<ScatterRecord> {
@@ -51,6 +54,7 @@ impl Material for Lambertian {
     fn scatter(
         &self,
         _: &mut dyn rand::RngCore,
+        _: &Uniform<f32>,
         _: &Ray,
         rec: &HitRecord,
     ) -> Option<ScatterRecord> {
@@ -88,6 +92,7 @@ impl Material for Metal {
     fn scatter(
         &self,
         rng: &mut dyn rand::RngCore,
+        dist: &Uniform<f32>,
         r_in: &Ray,
         rec: &HitRecord,
     ) -> Option<ScatterRecord> {
@@ -95,7 +100,7 @@ impl Material for Metal {
         Some(ScatterRecord {
             specular_ray: Some(Ray::new(
                 rec.p,
-                reflected + self.fuzz * random_in_unit_sphere(rng),
+                reflected + self.fuzz * random_in_unit_sphere(rng, dist),
                 0.0,
             )),
             attenuation: self.albedo,
@@ -127,6 +132,7 @@ impl Material for Dielectric {
     fn scatter(
         &self,
         _: &mut dyn rand::RngCore,
+        _: &Uniform<f32>,
         r_in: &Ray,
         rec: &HitRecord,
     ) -> Option<ScatterRecord> {
@@ -211,10 +217,11 @@ impl Material for Isotropic {
     fn scatter(
         &self,
         rng: &mut dyn rand::RngCore,
+        dist: &Uniform<f32>,
         r_in: &Ray,
         rec: &HitRecord,
     ) -> Option<ScatterRecord> {
-        let scattered = Ray::new(rec.p, random_in_unit_sphere(rng), r_in.time());
+        let scattered = Ray::new(rec.p, random_in_unit_sphere(rng, dist), r_in.time());
         let attenuation = self.albedo.value(rec.u, rec.v, rec.p);
 
         Some(ScatterRecord {
